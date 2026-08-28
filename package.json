@@ -1,0 +1,43 @@
+{
+  "name": "littlereads",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "generate:ebooks": "npx tsx scripts/generate-all-ebooks.ts",
+    "generate:covers": "npx tsx scripts/generate-covers.ts",
+    "seed:books": "npx tsx scripts/seed-books.ts",
+    "typecheck": "tsc --noEmit",
+    "validate:ebooks": "npx tsx scripts/validate-ebooks.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.5",
+    "@supabase/supabase-js": "^2.112.4",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.35.0",
+    "next": "16.3.3",
+    "pdfkit": "^0.20.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-hot-toast": "^2.6.0",
+    "sharp": "^0.35.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.12",
+    "typescript": "^5",
+    "vitest": "^4.1.11"
+  }
+}

@@ -1,0 +1,68 @@
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+
+thread 'tokio-rt-worker' (16760) panicked at turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:292:17:
+Restore of All for task TaskId 467977 failed in another thread: restoring failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+turbo-tasks: an internal panic occurred outside the per-task panic boundary. This is a bug in turbo-tasks/Turbopack — please report it at https://github.com/vercel/next.js/discussions and include the panic message and stack trace above.
+
+Aborting.

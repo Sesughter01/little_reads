@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+  <!-- Background -->
+  <rect width="600" height="900" fill="#164e63"/>
+
+  <!-- Gradient overlay -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#67e8f9;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#164e63;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="900" fill="url(#grad)"/>
+
+  <!-- Decorations -->
+  
+          <ellipse cx="186.4398850953009" cy="674.5903307887982" rx="25" ry="12" fill="none" stroke="#67e8f9" stroke-width="1" opacity="0.15"/>
+          <ellipse cx="186.4398850953009" cy="694.5903307887982" rx="35" ry="15" fill="none" stroke="#67e8f9" stroke-width="0.8" opacity="0.1"/>
+        
+          <ellipse cx="439.5403915797079" cy="606.1197574166786" rx="25" ry="12" fill="none" stroke="#67e8f9" stroke-width="1" opacity="0.15"/>
+          <ellipse cx="439.5403915797079" cy="626.1197574166786" rx="35" ry="15" fill="none" stroke="#67e8f9" stroke-width="0.8" opacity="0.1"/>
+        
+          <ellipse cx="288.94364504097973" cy="533.1993291168753" rx="25" ry="12" fill="none" stroke="#67e8f9" stroke-width="1" opacity="0.15"/>
+          <ellipse cx="288.94364504097973" cy="553.1993291168753" rx="35" ry="15" fill="none" stroke="#67e8f9" stroke-width="0.8" opacity="0.1"/>
+        
+          <ellipse cx="117.71196594934352" cy="217.14477898674792" rx="25" ry="12" fill="none" stroke="#67e8f9" stroke-width="1" opacity="0.15"/>
+          <ellipse cx="117.71196594934352" cy="237.14477898674792" rx="35" ry="15" fill="none" stroke="#67e8f9" stroke-width="0.8" opacity="0.1"/>
+        
+          <ellipse cx="346.751265318895" cy="447.78979251204936" rx="25" ry="12" fill="none" stroke="#67e8f9" stroke-width="1" opacity="0.15"/>
+          <ellipse cx="346.751265318895" cy="467.78979251204936" rx="35" ry="15" fill="none" stroke="#67e8f9" stroke-width="0.8" opacity="0.1"/>
+        
+          <ellipse cx="283.06758815619196" cy="544.6586568612488" rx="25" ry="12" fill="none" stroke="#67e8f9" stroke-width="1" opacity="0.15"/>
+          <ellipse cx="283.06758815619196" cy="564.6586568612488" rx="35" ry="15" fill="none" stroke="#67e8f9" stroke-width="0.8" opacity="0.1"/>
+        
+
+  <!-- Category -->
+  <text x="300" y="100" font-family="Georgia, serif" font-size="14" fill="#67e8f9" text-anchor="middle" letter-spacing="3" opacity="0.7">ENVIRONMENT</text>
+
+  <!-- Emoji -->
+  <text x="300" y="340" font-size="80" text-anchor="middle" opacity="0.9">💧</text>
+
+  <!-- Title -->
+  <text x="300" y="462" font-family="Georgia, 'Times New Roman', serif" font-size="32" fill="white" text-anchor="middle" font-weight="bold">
+    <tspan x="300" dy="0">The Village That</tspan><tspan x="300" dy="36">Saved Water</tspan>
+  </text>
+
+  <!-- Divider -->
+  <line x1="250" y1="554" x2="350" y2="554" stroke="#67e8f9" stroke-width="2" opacity="0.5"/>
+
+  <!-- Author -->
+  <text x="300" y="589" font-family="Georgia, serif" font-size="13" fill="white" text-anchor="middle" opacity="0.6">LittleReads Editorial Team</text>
+
+  <!-- Brand -->
+  <rect x="0" y="840" width="600" height="60" fill="black" opacity="0.3"/>
+  <text x="300" y="875" font-family="Georgia, serif" font-size="16" fill="#67e8f9" text-anchor="middle" font-weight="bold" letter-spacing="2">LITTLEREADS</text>
+</svg>

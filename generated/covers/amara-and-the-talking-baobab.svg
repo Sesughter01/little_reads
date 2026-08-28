@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+  <!-- Background -->
+  <rect width="600" height="900" fill="#14532d"/>
+
+  <!-- Gradient overlay -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#14532d;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="900" fill="url(#grad)"/>
+
+  <!-- Decorations -->
+  <ellipse cx="518.6421196757262" cy="421.71292977098665" rx="20" ry="10" fill="#f59e0b" opacity="0.15" transform="rotate(280.39140577436245, 518.6421196757262, 421.71292977098665)"/><ellipse cx="421.8012713848837" cy="468.590589805148" rx="20" ry="10" fill="#f59e0b" opacity="0.15" transform="rotate(205.03397168118445, 421.8012713848837, 468.590589805148)"/><ellipse cx="492.4644360468621" cy="779.14150566184" rx="20" ry="10" fill="#f59e0b" opacity="0.15" transform="rotate(117.98725318858384, 492.4644360468621, 779.14150566184)"/><ellipse cx="179.76678495601033" cy="243.4195346817769" rx="20" ry="10" fill="#f59e0b" opacity="0.15" transform="rotate(252.00172259732037, 179.76678495601033, 243.4195346817769)"/><ellipse cx="160.06725453143815" cy="634.0422105215551" rx="20" ry="10" fill="#f59e0b" opacity="0.15" transform="rotate(120.99709798332476, 160.06725453143815, 634.0422105215551)"/><ellipse cx="92.81328812389967" cy="232.5864273634672" rx="20" ry="10" fill="#f59e0b" opacity="0.15" transform="rotate(22.286891924639704, 92.81328812389967, 232.5864273634672)"/><ellipse cx="342.85013765461423" cy="647.2105694050254" rx="20" ry="10" fill="#f59e0b" opacity="0.15" transform="rotate(145.11953334995334, 342.85013765461423, 647.2105694050254)"/><ellipse cx="248.03958840745912" cy="320.3300876902514" rx="20" ry="10" fill="#f59e0b" opacity="0.15" transform="rotate(248.68109489811184, 248.03958840745912, 320.3300876902514)"/>
+
+  <!-- Category -->
+  <text x="300" y="100" font-family="Georgia, serif" font-size="14" fill="#f59e0b" text-anchor="middle" letter-spacing="3" opacity="0.7">AFRICAN STORIES</text>
+
+  <!-- Emoji -->
+  <text x="300" y="340" font-size="80" text-anchor="middle" opacity="0.9">🌳</text>
+
+  <!-- Title -->
+  <text x="300" y="462" font-family="Georgia, 'Times New Roman', serif" font-size="32" fill="white" text-anchor="middle" font-weight="bold">
+    <tspan x="300" dy="0">Amara and the</tspan><tspan x="300" dy="36">Talking Baobab</tspan>
+  </text>
+
+  <!-- Divider -->
+  <line x1="250" y1="554" x2="350" y2="554" stroke="#f59e0b" stroke-width="2" opacity="0.5"/>
+
+  <!-- Author -->
+  <text x="300" y="589" font-family="Georgia, serif" font-size="13" fill="white" text-anchor="middle" opacity="0.6">LittleReads Editorial Team</text>
+
+  <!-- Brand -->
+  <rect x="0" y="840" width="600" height="60" fill="black" opacity="0.3"/>
+  <text x="300" y="875" font-family="Georgia, serif" font-size="16" fill="#f59e0b" text-anchor="middle" font-weight="bold" letter-spacing="2">LITTLEREADS</text>
+</svg>

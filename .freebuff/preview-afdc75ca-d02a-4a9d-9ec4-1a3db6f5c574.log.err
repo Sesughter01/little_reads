@@ -1,0 +1,88 @@
+⚠ `eslint` configuration in next.config.ts is no longer supported. See more info here: https://nextjs.org/docs/app/api-reference/cli/next#next-lint-options
+⚠ Invalid next.config.ts options detected: 
+⚠     Unrecognized key(s) in object: 'eslint'
+⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}

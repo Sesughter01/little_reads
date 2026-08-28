@@ -1,0 +1,28 @@
+▲ Next.js 16.3.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://169.254.66.171:3000
+- Environments: .env.local
+✓ Ready in 2.5s
+✓ Running next.config.ts took 330ms
+
+ GET / 200 in 27.5s (next.js: 2.8s, application-code: 24.7s)
+ GET / 200 in 22.4s (next.js: 217ms, application-code: 22.2s)
+ GET /shop 200 in 15.2s (next.js: 498ms, application-code: 14.7s)
+ GET /categories 200 in 8.1s (next.js: 272ms, application-code: 7.8s)
+ GET /about 200 in 575ms (next.js: 242ms, application-code: 333ms)
+ GET /contact 200 in 357ms (next.js: 92ms, application-code: 266ms)
+ GET /login 200 in 441ms (next.js: 165ms, application-code: 276ms)
+ GET /register 200 in 800ms (next.js: 127ms, application-code: 673ms)
+ GET /cart 200 in 613ms (next.js: 257ms, application-code: 356ms)
+ GET /checkout 200 in 528ms (next.js: 93ms, application-code: 436ms)
+ GET /privacy 200 in 489ms (next.js: 115ms, application-code: 373ms)
+ GET /terms 200 in 448ms (next.js: 114ms, application-code: 334ms)
+ GET /refund-policy 200 in 869ms (next.js: 129ms, application-code: 740ms)
+ GET /forgot-password 200 in 489ms (next.js: 137ms, application-code: 353ms)
+ GET /account 307 in 1443ms (next.js: 617ms, application-code: 825ms)
+ GET /account/library 307 in 2.3s (next.js: 949ms, application-code: 1338ms)
+ GET /account/orders 307 in 1719ms (next.js: 453ms, application-code: 1265ms)
+ GET /account/reviews 307 in 2.5s (next.js: 779ms, application-code: 1720ms)
+ GET /account/wishlist 200 in 727ms (next.js: 261ms, application-code: 466ms)
+ GET /account/profile 307 in 1346ms (next.js: 472ms, application-code: 874ms)
+[?25h

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+  <!-- Background -->
+  <rect width="600" height="900" fill="#1e3a5f"/>
+
+  <!-- Gradient overlay -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#93c5fd;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#1e3a5f;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="900" fill="url(#grad)"/>
+
+  <!-- Decorations -->
+  <line x1="270.1163966077968" y1="322.3034861293813" x2="265.1163966077968" y2="337.3034861293813" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/><line x1="84.0456656216707" y1="230.07396987238945" x2="79.0456656216707" y2="245.07396987238945" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/><line x1="95.56428761808611" y1="193.36665505063112" x2="90.56428761808611" y2="208.36665505063112" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/><line x1="402.33908517823346" y1="197.8914902799274" x2="397.33908517823346" y2="212.8914902799274" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/><line x1="408.08787065692167" y1="221.47884003944873" x2="403.08787065692167" y2="236.47884003944873" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/><line x1="392.1893856428588" y1="347.49007393434744" x2="387.1893856428588" y2="362.49007393434744" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/><line x1="380.2832124865504" y1="183.0684296960158" x2="375.2832124865504" y2="198.0684296960158" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/><line x1="419.4347802114138" y1="150.09481750384742" x2="414.4347802114138" y2="165.09481750384742" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/><line x1="191.23941779874644" y1="156.92232330180218" x2="186.23941779874644" y2="171.92232330180218" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/><line x1="255.02113801577346" y1="308.4439672318824" x2="250.02113801577346" y2="323.4439672318824" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/><line x1="223.46831247670093" y1="281.71549301436596" x2="218.46831247670093" y2="296.71549301436596" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/><line x1="490.01288376201853" y1="167.81881608621325" x2="485.01288376201853" y2="182.81881608621325" stroke="#93c5fd" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/>
+
+  <!-- Category -->
+  <text x="300" y="100" font-family="Georgia, serif" font-size="14" fill="#93c5fd" text-anchor="middle" letter-spacing="3" opacity="0.7">SCIENCE</text>
+
+  <!-- Emoji -->
+  <text x="300" y="340" font-size="80" text-anchor="middle" opacity="0.9">🌧️</text>
+
+  <!-- Title -->
+  <text x="300" y="462" font-family="Georgia, 'Times New Roman', serif" font-size="32" fill="white" text-anchor="middle" font-weight="bold">
+    <tspan x="300" dy="0">Why Does the Rain</tspan><tspan x="300" dy="36">Fall?</tspan>
+  </text>
+
+  <!-- Divider -->
+  <line x1="250" y1="554" x2="350" y2="554" stroke="#93c5fd" stroke-width="2" opacity="0.5"/>
+
+  <!-- Author -->
+  <text x="300" y="589" font-family="Georgia, serif" font-size="13" fill="white" text-anchor="middle" opacity="0.6">LittleReads Editorial Team</text>
+
+  <!-- Brand -->
+  <rect x="0" y="840" width="600" height="60" fill="black" opacity="0.3"/>
+  <text x="300" y="875" font-family="Georgia, serif" font-size="16" fill="#93c5fd" text-anchor="middle" font-weight="bold" letter-spacing="2">LITTLEREADS</text>
+</svg>

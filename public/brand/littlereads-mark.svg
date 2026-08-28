@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Left page (forms the L shape with spine) -->
+  <path d="M6 12 C6 10 8 8 10 8 L23 8 L23 38 L10 38 C8 38 6 36 6 34 Z" fill="#7C3AED"/>
+  <!-- Right page -->
+  <path d="M42 12 C42 10 40 8 38 8 L25 8 L25 38 L38 38 C40 38 42 36 42 34 Z" fill="#9333EA"/>
+  <!-- Spine shadow -->
+  <rect x="23" y="8" width="2" height="30" fill="#6D28D9" rx="1"/>
+  <!-- Page lines left -->
+  <line x1="11" y1="15" x2="21" y2="15" stroke="white" stroke-opacity="0.25" stroke-width="1" stroke-linecap="round"/>
+  <line x1="11" y1="19" x2="19" y2="19" stroke="white" stroke-opacity="0.25" stroke-width="1" stroke-linecap="round"/>
+  <line x1="11" y1="23" x2="20" y2="23" stroke="white" stroke-opacity="0.25" stroke-width="1" stroke-linecap="round"/>
+  <!-- Page lines right -->
+  <line x1="27" y1="15" x2="37" y2="15" stroke="white" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round"/>
+  <line x1="27" y1="19" x2="35" y2="19" stroke="white" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round"/>
+  <line x1="27" y1="23" x2="36" y2="23" stroke="white" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round"/>
+  <!-- Sparkle star -->
+  <path d="M24 2 L25.5 6.5 L30 5 L26.5 8 L30 11 L25.5 9 L24 13.5 L22.5 9 L18 11 L21.5 8 L18 5 L22.5 6.5 Z" fill="#F97316"/>
+  <circle cx="24" cy="8" r="1.5" fill="#FBBF24"/>
+</svg>

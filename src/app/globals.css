@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-brand-cream: #FFF8F0;
+  --color-brand-purple: #7C3AED;
+  --color-brand-purple-dark: #6D28D9;
+  --color-brand-orange: #F97316;
+  --color-brand-orange-dark: #EA580C;
+  --color-brand-blue: #3B82F6;
+  --color-brand-soft-blue: #93C5FD;
+  --color-brand-yellow: #FBBF24;
+  --color-brand-green: #10B981;
+  --color-brand-green-dark: #059669;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Poppins', 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-brand-cream);
+    color: #111827;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold text-white transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    background-color: var(--color-brand-purple);
+  }
+  .btn-primary:hover {
+    background-color: var(--color-brand-purple-dark);
+  }
+  .btn-primary:focus {
+    --tw-ring-color: var(--color-brand-purple);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2;
+    border: 2px solid var(--color-brand-purple);
+    color: var(--color-brand-purple);
+  }
+  .btn-secondary:hover {
+    background-color: var(--color-brand-purple);
+    color: white;
+  }
+
+  .btn-orange {
+    @apply inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold text-white transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    background-color: var(--color-brand-orange);
+  }
+  .btn-orange:hover {
+    background-color: var(--color-brand-orange-dark);
+  }
+
+  .card {
+    @apply rounded-2xl bg-white p-6 shadow-sm transition-all hover:shadow-md;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-gray-300 px-4 py-3 text-sm transition-colors outline-none;
+  }
+  .input:focus {
+    border-color: var(--color-brand-purple);
+    --tw-ring-color: color-mix(in srgb, var(--color-brand-purple) 20%, transparent);
+  }
+
+  .label {
+    @apply mb-2 block text-sm font-medium text-gray-700;
+  }
+
+  .section-title {
+    @apply text-2xl font-bold text-gray-900 md:text-3xl;
+    font-family: var(--font-display);
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .animate-in {
+    animation-duration: 200ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
+  }
+
+  .slide-in-from-left {
+    animation-name: slideInFromLeft;
+  }
+
+  .slide-in-from-right {
+    animation-name: slideInFromRight;
+  }
+
+  .fade-in {
+    animation-name: fadeIn;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+  <!-- Background -->
+  <rect width="600" height="900" fill="#7c2d12"/>
+
+  <!-- Gradient overlay -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fdba74;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#7c2d12;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="900" fill="url(#grad)"/>
+
+  <!-- Decorations -->
+  <line x1="360" y1="400" x2="450" y2="400" stroke="#fdba74" stroke-width="2" opacity="0.15" stroke-linecap="round"/><line x1="342.42640687119285" y1="442.42640687119285" x2="406.06601717798213" y2="506.06601717798213" stroke="#fdba74" stroke-width="2" opacity="0.15" stroke-linecap="round"/><line x1="300" y1="460" x2="300" y2="550" stroke="#fdba74" stroke-width="2" opacity="0.15" stroke-linecap="round"/><line x1="257.57359312880715" y1="442.42640687119285" x2="193.93398282201787" y2="506.06601717798213" stroke="#fdba74" stroke-width="2" opacity="0.15" stroke-linecap="round"/><line x1="240" y1="400" x2="150" y2="400" stroke="#fdba74" stroke-width="2" opacity="0.15" stroke-linecap="round"/><line x1="257.57359312880715" y1="357.57359312880715" x2="193.93398282201787" y2="293.93398282201787" stroke="#fdba74" stroke-width="2" opacity="0.15" stroke-linecap="round"/><line x1="300" y1="340" x2="300" y2="250" stroke="#fdba74" stroke-width="2" opacity="0.15" stroke-linecap="round"/><line x1="342.42640687119285" y1="357.57359312880715" x2="406.0660171779821" y2="293.93398282201787" stroke="#fdba74" stroke-width="2" opacity="0.15" stroke-linecap="round"/>
+
+  <!-- Category -->
+  <text x="300" y="100" font-family="Georgia, serif" font-size="14" fill="#fdba74" text-anchor="middle" letter-spacing="3" opacity="0.7">ENTREPRENEURSHIP</text>
+
+  <!-- Emoji -->
+  <text x="300" y="340" font-size="80" text-anchor="middle" opacity="0.9">💡</text>
+
+  <!-- Title -->
+  <text x="300" y="480" font-family="Georgia, 'Times New Roman', serif" font-size="32" fill="white" text-anchor="middle" font-weight="bold">
+    <tspan x="300" dy="0">Nia's Big Idea</tspan>
+  </text>
+
+  <!-- Divider -->
+  <line x1="250" y1="536" x2="350" y2="536" stroke="#fdba74" stroke-width="2" opacity="0.5"/>
+
+  <!-- Author -->
+  <text x="300" y="571" font-family="Georgia, serif" font-size="13" fill="white" text-anchor="middle" opacity="0.6">LittleReads Editorial Team</text>
+
+  <!-- Brand -->
+  <rect x="0" y="840" width="600" height="60" fill="black" opacity="0.3"/>
+  <text x="300" y="875" font-family="Georgia, serif" font-size="16" fill="#fdba74" text-anchor="middle" font-weight="bold" letter-spacing="2">LITTLEREADS</text>
+</svg>

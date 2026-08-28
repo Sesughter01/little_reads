@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 48" fill="none">
+  <!-- Brand mark -->
+  <g transform="translate(0, 4)">
+    <!-- Left page (L shape) -->
+    <path d="M4 8 C4 6 6 4 8 4 L19 4 L19 32 L8 32 C6 32 4 30 4 28 Z" fill="#7C3AED"/>
+    <!-- Right page -->
+    <path d="M34 8 C34 6 32 4 30 4 L21 4 L21 32 L30 32 C32 32 34 30 34 28 Z" fill="#9333EA"/>
+    <!-- Spine -->
+    <rect x="19" y="4" width="2" height="28" fill="#6D28D9" rx="1"/>
+    <!-- Sparkle -->
+    <path d="M21 -1 L22 3 L26 2 L23 4 L26 6 L22 5 L21 9 L20 5 L16 6 L19 4 L16 2 L20 3 Z" fill="#F97316"/>
+    <circle cx="21" cy="3" r="1.2" fill="#FBBF24"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="46" y="26" font-family="'Poppins', 'Inter', system-ui, sans-serif" font-size="22" font-weight="700" fill="#7C3AED">LittleReads</text>
+  <!-- Tagline -->
+  <text x="46" y="42" font-family="'Inter', system-ui, sans-serif" font-size="9" fill="#9CA3AF" letter-spacing="0.3">Big Adventures for Little Readers</text>
+</svg>

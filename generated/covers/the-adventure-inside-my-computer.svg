@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+  <!-- Background -->
+  <rect width="600" height="900" fill="#0c0a09"/>
+
+  <!-- Gradient overlay -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4ade80;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#0c0a09;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="900" fill="url(#grad)"/>
+
+  <!-- Decorations -->
+  
+        <line x1="50" y1="200" x2="200" y2="200" stroke="#4ade80" stroke-width="1" opacity="0.2"/>
+        <line x1="200" y1="200" x2="200" y2="350" stroke="#4ade80" stroke-width="1" opacity="0.2"/>
+        <line x1="400" y1="600" x2="550" y2="600" stroke="#4ade80" stroke-width="1" opacity="0.2"/>
+        <line x1="400" y1="600" x2="400" y2="750" stroke="#4ade80" stroke-width="1" opacity="0.2"/>
+        <circle cx="200" cy="200" r="4" fill="#4ade80" opacity="0.3"/>
+        <circle cx="400" cy="600" r="4" fill="#4ade80" opacity="0.3"/>
+      
+
+  <!-- Category -->
+  <text x="300" y="100" font-family="Georgia, serif" font-size="14" fill="#4ade80" text-anchor="middle" letter-spacing="3" opacity="0.7">EDUCATION</text>
+
+  <!-- Emoji -->
+  <text x="300" y="340" font-size="80" text-anchor="middle" opacity="0.9">💻</text>
+
+  <!-- Title -->
+  <text x="300" y="462" font-family="Georgia, 'Times New Roman', serif" font-size="32" fill="white" text-anchor="middle" font-weight="bold">
+    <tspan x="300" dy="0">The Adventure</tspan><tspan x="300" dy="36">Inside My Computer</tspan>
+  </text>
+
+  <!-- Divider -->
+  <line x1="250" y1="554" x2="350" y2="554" stroke="#4ade80" stroke-width="2" opacity="0.5"/>
+
+  <!-- Author -->
+  <text x="300" y="589" font-family="Georgia, serif" font-size="13" fill="white" text-anchor="middle" opacity="0.6">LittleReads Editorial Team</text>
+
+  <!-- Brand -->
+  <rect x="0" y="840" width="600" height="60" fill="black" opacity="0.3"/>
+  <text x="300" y="875" font-family="Georgia, serif" font-size="16" fill="#4ade80" text-anchor="middle" font-weight="bold" letter-spacing="2">LITTLEREADS</text>
+</svg>

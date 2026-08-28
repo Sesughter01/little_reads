@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+  <!-- Background -->
+  <rect width="600" height="900" fill="#701a75"/>
+
+  <!-- Gradient overlay -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f9a8d4;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#701a75;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="900" fill="url(#grad)"/>
+
+  <!-- Decorations -->
+  <text x="282.70127815011864" y="333.9670559288421" font-size="24" opacity="0.15">❤</text><text x="272.45275700235777" y="564.6323726777737" font-size="24" opacity="0.15">❤</text><text x="192.9371035420175" y="465.8039918352116" font-size="24" opacity="0.15">❤</text><text x="390.463507008178" y="514.1968439868152" font-size="24" opacity="0.15">❤</text><text x="243.78779341809917" y="299.3993920282992" font-size="24" opacity="0.15">❤</text><text x="126.0030508052842" y="266.39258580790846" font-size="24" opacity="0.15">❤</text>
+
+  <!-- Category -->
+  <text x="300" y="100" font-family="Georgia, serif" font-size="14" fill="#f9a8d4" text-anchor="middle" letter-spacing="3" opacity="0.7">FRIENDSHIP</text>
+
+  <!-- Emoji -->
+  <text x="300" y="340" font-size="80" text-anchor="middle" opacity="0.9">💝</text>
+
+  <!-- Title -->
+  <text x="300" y="480" font-family="Georgia, 'Times New Roman', serif" font-size="32" fill="white" text-anchor="middle" font-weight="bold">
+    <tspan x="300" dy="0">The Kindness Jar</tspan>
+  </text>
+
+  <!-- Divider -->
+  <line x1="250" y1="536" x2="350" y2="536" stroke="#f9a8d4" stroke-width="2" opacity="0.5"/>
+
+  <!-- Author -->
+  <text x="300" y="571" font-family="Georgia, serif" font-size="13" fill="white" text-anchor="middle" opacity="0.6">LittleReads Editorial Team</text>
+
+  <!-- Brand -->
+  <rect x="0" y="840" width="600" height="60" fill="black" opacity="0.3"/>
+  <text x="300" y="875" font-family="Georgia, serif" font-size="16" fill="#f9a8d4" text-anchor="middle" font-weight="bold" letter-spacing="2">LITTLEREADS</text>
+</svg>
