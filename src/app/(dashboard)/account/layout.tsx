@@ -11,10 +11,8 @@ import {
   Heart,
   User,
   LogOut,
-  ChevronDown,
   Menu,
   X,
-  BookOpen,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 

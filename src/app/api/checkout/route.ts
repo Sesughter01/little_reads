@@ -66,7 +66,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Remove duplicates (client may have sent the same product twice)
-    const uniqueProductIds = [...new Set(productIds)];
     const uniqueProducts = publishedProducts.filter(
       (p, index, self) => index === self.findIndex((s) => s.id === p.id)
     );

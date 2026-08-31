@@ -49,7 +49,7 @@ export default async function LibraryPage() {
                   <div className="flex-1 min-w-0">
                     <Link
                       href={`/books/${product.slug}`}
-                      className="font-semibold text-gray-900 hover:text-purple-700 transition-colors block truncate"
+                      className="font-semibold text-gray-900 hover:text-brand-purple transition-colors block truncate"
                     >
                       {product.title}
                     </Link>
@@ -60,7 +60,7 @@ export default async function LibraryPage() {
                     {product.pdf_path ? (
                       <a
                         href={`/api/ebooks/${product.id}/download`}
-                        className="inline-flex items-center gap-1 mt-2 text-sm text-purple-700 font-medium hover:underline"
+                        className="inline-flex items-center gap-1 mt-2 text-sm text-brand-purple font-medium hover:underline"
                       >
                         <Download className="h-3 w-3" />
                         Download PDF

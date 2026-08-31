@@ -4,14 +4,16 @@ import { Star, BookOpen, CheckCircle2, ChevronRight } from 'lucide-react';
 import { formatPrice, getAgeRangeText } from '@/lib/utils';
 import { AddToCartButton } from '@/components/cart/add-to-cart-button';
 import { BuyNowButton } from '@/components/checkout/buy-now-button';
+import { WishlistButton } from '@/components/product/wishlist-button';
+import { ReviewForm } from '@/components/review-form';
+import { createClient } from '@/lib/supabase/server';
 import type { Metadata } from 'next';
 
 async function safeGetProduct(slug: string) {
   try {
     const { getProductBySlug } = await import('@/lib/db');
     return await getProductBySlug(slug);
-  } catch (e) {
-    console.error('Error fetching product:', e);
+  } catch {
     return null;
   }
 }
@@ -20,7 +22,7 @@ async function safeGetReviews(productId: string) {
   try {
     const { getProductReviews } = await import('@/lib/db');
     return await getProductReviews(productId);
-  } catch (e) {
+  } catch {
     return [];
   }
 }
@@ -29,7 +31,7 @@ async function safeGetRelated(productId: string, categoryId: string, ageMin: num
   try {
     const { getRelatedProducts } = await import('@/lib/db');
     return await getRelatedProducts(productId, categoryId, ageMin, ageMax);
-  } catch (e) {
+  } catch {
     return [];
   }
 }
@@ -56,14 +58,34 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const reviews = await safeGetReviews(product.id);
   const relatedBooks = await safeGetRelated(product.id, product.category_id, product.age_min, product.age_max);
 
+  // Check user state for review form
+  let isLoggedIn = false;
+  let hasPurchased = false;
+  let hasReviewed = false;
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      isLoggedIn = true;
+      const [{ data: purchase }, { data: existingReview }] = await Promise.all([
+        supabase.from('purchases').select('id').eq('user_id', user.id).eq('product_id', product.id).single(),
+        supabase.from('reviews').select('id').eq('user_id', user.id).eq('product_id', product.id).single(),
+      ]);
+      hasPurchased = !!purchase;
+      hasReviewed = !!existingReview;
+    }
+  } catch {
+    // Not logged in or error - defaults are fine
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-gray-500 mb-8 flex-wrap">
-        <Link href="/" className="hover:text-purple-700">Home</Link>            <ChevronRight className="h-3 w-3 shrink-0" />
-        <Link href="/shop" className="hover:text-purple-700">Shop</Link>
+        <Link href="/" className="hover:text-brand-purple">Home</Link>            <ChevronRight className="h-3 w-3 shrink-0" />
+        <Link href="/shop" className="hover:text-brand-purple">Shop</Link>
         <ChevronRight className="h-3 w-3 shrink-0" />
-        {product.category && <><Link href={`/shop?category=${product.category.slug}`} className="hover:text-purple-700">{product.category.name}</Link><ChevronRight className="h-3 w-3 shrink-0" /></>}
+        {product.category && <><Link href={`/shop?category=${product.category.slug}`} className="hover:text-brand-purple">{product.category.name}</Link><ChevronRight className="h-3 w-3 shrink-0" /></>}
         <span className="text-gray-900">{product.title}</span>
       </nav>
 
@@ -75,7 +97,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               {product.cover_url ? (
                 <img src={product.cover_url} alt={product.title} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-orange-100">
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-purple/10 to-brand-orange/10">
                   <BookOpen className="h-16 w-16 text-purple-200" />
                 </div>
               )}
@@ -86,7 +108,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         {/* Details */}
         <div>
           {product.category && (
-            <Link href={`/shop?category=${product.category.slug}`} className="inline-block text-sm font-medium text-purple-700 bg-purple-100 px-3 py-1 rounded-full mb-4">
+            <Link href={`/shop?category=${product.category.slug}`} className="inline-block text-sm font-medium text-brand-purple bg-brand-purple/10 px-3 py-1 rounded-full mb-4">
               {product.category.name}
             </Link>
           )}
@@ -133,6 +155,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <div className="flex flex-col sm:flex-row gap-3 mb-8">
             <AddToCartButton product={product} />
             <BuyNowButton product={product} />
+            <WishlistButton productId={product.id} size="md" />
           </div>
 
           <div className="prose prose-gray max-w-none mb-8">
@@ -157,7 +180,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           {product.keywords && product.keywords.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {product.keywords.map((kw) => (
-                <Link key={kw.id} href={`/shop?search=${encodeURIComponent(kw.keyword)}`} className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full hover:bg-purple-100 hover:text-purple-700 transition-colors">
+                <Link key={kw.id} href={`/shop?search=${encodeURIComponent(kw.keyword)}`} className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full hover:bg-brand-purple/10 hover:text-brand-purple transition-colors">
                   {kw.keyword}
                 </Link>
               ))}
@@ -169,6 +192,18 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       {/* Reviews */}
       <section className="mt-16 pt-12 border-t border-gray-200">
         <h2 className="text-2xl font-bold text-gray-900 mb-8">Reviews ({reviews.length})</h2>
+
+        {/* Review Form */}
+        <div className="mb-8">
+          <ReviewForm
+            productId={product.id}
+            productTitle={product.slug}
+            isLoggedIn={isLoggedIn}
+            hasPurchased={hasPurchased}
+            hasReviewed={hasReviewed}
+          />
+        </div>
+
         {reviews.length > 0 ? (
           <div className="space-y-6">
             {reviews.map((review) => (
@@ -210,7 +245,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                   </div>
                 </Link>
                 <div className="p-3">
-                  <Link href={`/books/${book.slug}`}><h3 className="font-semibold text-gray-900 text-sm line-clamp-2 hover:text-purple-700">{book.title}</h3></Link>
+                  <Link href={`/books/${book.slug}`}><h3 className="font-semibold text-gray-900 text-sm line-clamp-2 hover:text-brand-purple">{book.title}</h3></Link>
                   <p className="text-sm font-bold text-gray-900 mt-1">{formatPrice(book.sale_price || book.price)}</p>
                 </div>
               </div>

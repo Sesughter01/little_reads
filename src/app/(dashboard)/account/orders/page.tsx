@@ -44,7 +44,7 @@ export default async function OrdersPage() {
                   <span className="font-bold text-gray-900">{formatPrice(order.total)}</span>
                   <Link
                     href={`/account/orders/${order.id}`}
-                    className="p-2 text-gray-400 hover:text-purple-700 hover:bg-purple-50 rounded-xl"
+                    className="p-2 text-gray-400 hover:text-brand-purple hover:bg-purple-50 rounded-xl"
                   >
                     <Eye className="h-4 w-4" />
                   </Link>

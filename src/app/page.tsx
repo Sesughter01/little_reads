@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, BookOpen, Download, Shield, Heart, Star, CheckCircle, Search, ShoppingCart, CreditCard, Sprout, Leaf, TreePine } from 'lucide-react';
+import { ArrowRight, BookOpen, Download, Shield, Heart, Star, Search, ShoppingCart, CreditCard, Sprout, Leaf, TreePine } from 'lucide-react';
 import { BookCard } from '@/components/product/book-card';
 import { NewsletterForm } from '@/components/newsletter-form';
 import type { Product, Category } from '@/types';
@@ -9,7 +9,7 @@ async function safeGetProducts(params?: { featured?: boolean; sort?: string; lim
     const { getProducts } = await import('@/lib/db');
     return await getProducts(params);
   } catch (e) {
-    console.error('Error fetching products:', e);
+    console.error('Error fetching products:', e instanceof Error ? e.message : e);
     return { products: [], total: 0 };
   }
 }
@@ -19,7 +19,7 @@ async function safeGetCategories() {
     const { getCategories } = await import('@/lib/db');
     return await getCategories();
   } catch (e) {
-    console.error('Error fetching categories:', e);
+    console.error('Error fetching categories:', e instanceof Error ? e.message : e);
     return [];
   }
 }
@@ -52,7 +52,7 @@ export default async function HomePage() {
   const categories = await safeGetCategories();
 
   const displayFeatured = featuredBooks.length > 0 ? featuredBooks : fallbackBooks;
-  const displayBestSellers = bestSellers.length > 0 ? bestSellers : fallbackBooks.slice(0, 4);
+  const _displayBestSellers = bestSellers.length > 0 ? bestSellers : fallbackBooks.slice(0, 4);
   const displayCategories = categories.length > 0 ? categories : fallbackCategories;
 
   const ageGroups = [
@@ -96,7 +96,7 @@ export default async function HomePage() {
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Featured Books</h2>
               <p className="text-gray-500 mt-1 text-sm">Handpicked stories for young readers</p>
             </div>
-            <Link href="/shop" className="hidden sm:flex items-center gap-1 text-sm text-purple-700 font-semibold hover:underline">
+            <Link href="/shop" className="hidden sm:flex items-center gap-1 text-sm text-brand-purple font-semibold hover:underline">
               View All <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -134,7 +134,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {displayCategories.slice(0, 8).map((cat: Category) => (
               <Link key={cat.id} href={`/shop?category=${cat.slug}`} className="card text-center hover:border-purple-700 border-2 border-transparent transition-all py-4">
-                <h3 className="font-semibold text-gray-900 text-sm group-hover:text-purple-700">{cat.name}</h3>
+                <h3 className="font-semibold text-gray-900 text-sm group-hover:text-brand-purple">{cat.name}</h3>
               </Link>
             ))}
           </div>
@@ -150,7 +150,7 @@ export default async function HomePage() {
               { icon: <Star className="h-6 w-6 text-yellow-500" />, title: 'Age-Appropriate', desc: 'Reviewed for ages 5–10' },
               { icon: <Download className="h-6 w-6 text-green-500" />, title: 'Instant Access', desc: 'Download PDFs immediately' },
               { icon: <BookOpen className="h-6 w-6 text-blue-500" />, title: 'Educational', desc: 'Learning outcomes included' },
-              { icon: <Shield className="h-6 w-6 text-purple-700" />, title: 'Safe Content', desc: 'Curated for children' },
+              { icon: <Shield className="h-6 w-6 text-brand-purple" />, title: 'Safe Content', desc: 'Curated for children' },
               { icon: <Heart className="h-6 w-6 text-red-500" />, title: 'Read Anywhere', desc: 'Phone, tablet, or computer' },
             ].map((item) => (
               <div key={item.title} className="text-center">

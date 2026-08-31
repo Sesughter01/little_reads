@@ -100,10 +100,12 @@ export function Header() {
   }, [isDrawerOpen, isSearchOpen]);
 
   // Close drawer on route change
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setIsDrawerOpen(false);
     setIsSearchOpen(false);
   }, [pathname]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Escape key handler
   const handleEscape = useCallback((e: KeyboardEvent) => {

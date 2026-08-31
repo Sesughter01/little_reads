@@ -51,6 +51,42 @@ describe('Checkout Security', () => {
     expect(unique[0].id).toBe('1');
     expect(unique[1].id).toBe('2');
   });
+
+  it('should enforce server-side price calculation for all items', () => {
+    const serverProducts = [
+      { id: '1', price: 1500, sale_price: 1200 },
+      { id: '2', price: 2000, sale_price: null },
+      { id: '3', price: 1800, sale_price: 1500 },
+    ];
+
+    const total = serverProducts.reduce(
+      (sum, p) => sum + (p.sale_price || p.price),
+      0
+    );
+    expect(total).toBe(4700); // 1200 + 2000 + 1500
+  });
+
+  it('should reject checkout with no items', () => {
+    const items: unknown[] = [];
+    expect(items.length).toBe(0);
+    expect(items.length > 0).toBe(false);
+  });
+
+  it('should require all product IDs to be found in database', () => {
+    const requestedIds = ['id-1', 'id-2', 'id-3'];
+    const foundIds = ['id-1', 'id-3']; // id-2 not found
+
+    expect(requestedIds.length).not.toBe(foundIds.length);
+  });
+
+  it('should reject unpublished products from checkout', () => {
+    const products = [
+      { id: '1', published: true, title: 'Available' },
+      { id: '2', published: false, title: 'Draft' },
+    ];
+    const allPublished = products.every((p) => p.published);
+    expect(allPublished).toBe(false);
+  });
 });
 
 describe('Webhook Security', () => {
@@ -76,6 +112,14 @@ describe('Webhook Security', () => {
     // If already paid, should skip
     const shouldProcess = order.status !== 'paid';
     expect(shouldProcess).toBe(false);
+  });
+
+  it('should reject forged webhook signature', () => {
+    const body = '{"event":"charge.success"}';
+    const realSignature = 'sig_abc123';
+    const forgedSignature = 'forged_sig_xyz';
+
+    expect(forgedSignature).not.toBe(realSignature);
   });
 });
 

@@ -4,13 +4,10 @@ import type {
   ProductWithDetails,
   Category,
   Order,
-  OrderItem,
   Purchase,
   Review,
   Profile,
-  CartItem,
   DashboardStats,
-  SalesData,
   Wishlist,
 } from '@/types';
 
@@ -105,7 +102,12 @@ export async function getProducts(params?: {
   const { data, count, error } = await query;
 
   if (error) {
-    console.error('Error fetching products:', error);
+    console.error('Error fetching products:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
     return { products: [], total: 0 };
   }
 
@@ -548,9 +550,6 @@ export async function isAdmin(userId: string): Promise<boolean> {
 export async function getDashboardStats(): Promise<DashboardStats> {
   const supabase = await createServiceClient();
 
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
   const [ordersResult, productsResult, customersResult, paidOrdersResult] =
     await Promise.all([
       supabase.from('orders').select('total', { count: 'exact' }),
@@ -561,12 +560,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   const totalRevenue =
     paidOrdersResult.data?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
-
-  const monthOrders =
-    paidOrdersResult.data?.filter((o) => {
-      // We need created_at for this but the basic version works
-      return true;
-    }) || [];
 
   const totalOrders = ordersResult.count || 0;
   const paidOrders =

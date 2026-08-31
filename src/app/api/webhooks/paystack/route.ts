@@ -8,15 +8,15 @@ export async function POST(request: NextRequest) {
     const body = await request.text();
     const signature = request.headers.get('x-paystack-signature');
 
-    // FAIL SECURELY: Reject if webhook secret is not configured
-    if (!process.env.PAYSTACK_WEBHOOK_SECRET) {
-      console.error('CRITICAL: PAYSTACK_WEBHOOK_SECRET not configured. Rejecting webhook.');
+    // FAIL SECURELY: Reject if secret key is not configured
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error('CRITICAL: PAYSTACK_SECRET_KEY not configured. Rejecting webhook.');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
-    // Verify webhook signature (mandatory)
+    // Paystack signs webhooks with HMAC SHA-512 using the secret key
     const hash = crypto
-      .createHmac('sha512', process.env.PAYSTACK_WEBHOOK_SECRET)
+      .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
       .update(body)
       .digest('hex');
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createServiceClient();
 
     if (event.event === 'charge.success') {
-      const { reference, amount, status, channel, paid_at } = event.data;
+      const { reference, channel, paid_at } = event.data;
 
       // Find the order
       const { data: order, error: orderError } = await supabase

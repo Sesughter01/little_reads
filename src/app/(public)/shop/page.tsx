@@ -22,8 +22,7 @@ async function safeGetProducts(params?: {
   try {
     const { getProducts } = await import('@/lib/db');
     return await getProducts(params);
-  } catch (e) {
-    console.error('Error fetching products:', e);
+  } catch {
     return { products: [], total: 0 };
   }
 }
@@ -32,7 +31,7 @@ async function safeGetCategories() {
   try {
     const { getCategories } = await import('@/lib/db');
     return await getCategories();
-  } catch (e) {
+  } catch {
     return [];
   }
 }
@@ -45,7 +44,7 @@ function BookCard({ product }: { product: Product }) {
           {product.cover_url ? (
             <img src={product.cover_url} alt={product.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-orange-100">
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-purple/10 to-brand-orange/10">
               <BookOpen className="h-10 w-10 text-purple-300" />
             </div>
           )}
@@ -56,12 +55,12 @@ function BookCard({ product }: { product: Product }) {
       <div className="p-4">
         <div className="flex items-center gap-2 mb-2">
           {product.category && (
-            <span className="text-xs font-medium text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">{product.category.name}</span>
+            <span className="text-xs font-medium text-brand-purple bg-brand-purple/10 px-2 py-0.5 rounded-full">{product.category.name}</span>
           )}
           <span className="text-xs text-gray-500">{getAgeRangeText(product.age_min, product.age_max)}</span>
         </div>
         <Link href={`/books/${product.slug}`}>
-          <h3 className="font-semibold text-gray-900 mb-1 hover:text-purple-700 transition-colors line-clamp-2">{product.title}</h3>
+          <h3 className="font-semibold text-gray-900 mb-1 hover:text-brand-purple transition-colors line-clamp-2">{product.title}</h3>
         </Link>
         <p className="text-sm text-gray-500 mb-3 line-clamp-2">{product.short_description}</p>
         {product.average_rating !== undefined && product.average_rating > 0 && (

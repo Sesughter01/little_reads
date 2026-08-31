@@ -4,6 +4,8 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Toaster } from 'react-hot-toast';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: {
     default: 'LittleReads - Big Adventures for Little Readers',
@@ -20,10 +22,15 @@ export const metadata: Metadata = {
     'reading for children',
   ],
   icons: {
-    icon: '/favicon.svg',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
     shortcut: '/favicon.svg',
     apple: '/icon-192.png',
   },
+  manifest: '/site.webmanifest',
   openGraph: {
     title: 'LittleReads - Big Adventures for Little Readers',
     description:

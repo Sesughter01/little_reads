@@ -20,7 +20,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
 
   return (
     <div>
-      <Link href="/admin/orders" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-purple-700 mb-6">
+      <Link href="/admin/orders" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-brand-purple mb-6">
         <ArrowLeft className="h-4 w-4" /> Back to Orders
       </Link>
 

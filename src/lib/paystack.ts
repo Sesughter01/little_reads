@@ -1,4 +1,5 @@
 import type { PaystackInitializeResponse, PaystackVerifyResponse } from '@/types';
+import crypto from 'crypto';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -56,11 +57,10 @@ export function verifyWebhookSignature(
   body: string,
   signature: string | null
 ): boolean {
-  if (!signature || !process.env.PAYSTACK_WEBHOOK_SECRET) return false;
+  if (!signature || !process.env.PAYSTACK_SECRET_KEY) return false;
 
-  const crypto = require('crypto');
   const hash = crypto
-    .createHmac('sha512', process.env.PAYSTACK_WEBHOOK_SECRET)
+    .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
     .update(body)
     .digest('hex');
 

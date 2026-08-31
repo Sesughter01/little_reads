@@ -1,5 +1,5 @@
-import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { redirect, notFound } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import type { Profile } from '@/types';
 
 /**
@@ -33,7 +33,8 @@ export async function requireUser(): Promise<{ userId: string; profile: Profile 
  * Uses server-side service client to check the database role.
  */
 export async function requireAdmin(): Promise<{ userId: string; profile: Profile }> {
-  const supabase = await createServiceClient();
+  // Use cookie-based client for auth (service client has no session cookies)
+  const supabase = await createClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 

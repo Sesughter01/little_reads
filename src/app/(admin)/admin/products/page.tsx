@@ -72,10 +72,17 @@ export default async function AdminProductsPage() {
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/books/${product.slug}`}
-                          className="p-2 text-gray-400 hover:text-purple-700 hover:bg-purple-50 rounded-xl"
+                          className="p-2 text-gray-400 hover:text-brand-purple hover:bg-purple-50 rounded-xl"
                           title="View"
                         >
                           <Eye className="h-4 w-4" />
+                        </Link>
+                        <Link
+                          href={`/admin/products/${product.id}/edit`}
+                          className="p-2 text-gray-400 hover:text-brand-orange hover:bg-orange-50 rounded-xl"
+                          title="Edit"
+                        >
+                          <Edit className="h-4 w-4" />
                         </Link>
                       </div>
                     </td>

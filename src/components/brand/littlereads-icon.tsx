@@ -36,25 +36,3 @@ export function LittleReadsIcon({ className = 'h-8 w-8' }: { className?: string 
     </svg>
   );
 }
-
-export function LittleReadsLogo({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 320 48"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-hidden="true"
-    >
-      <g transform="translate(0, 4)">
-        <path d="M4 8C4 6 6 4 8 4L19 4V32H8C6 32 4 30 4 28V8Z" fill="#7C3AED" />
-        <path d="M34 8C34 6 32 4 30 4L21 4V32H30C32 32 34 30 34 28V8Z" fill="#9333EA" />
-        <rect x="19" y="4" width="2" height="28" fill="#6D28D9" rx="1" />
-        <path d="M21 -1L22 3L26 2L23 4L26 6L22 5L21 9L20 5L16 6L19 4L16 2L20 3Z" fill="#F97316" />
-        <circle cx="21" cy="3" r="1.2" fill="#FBBF24" />
-      </g>
-      <text x="46" y="26" fontFamily="'Poppins', 'Inter', system-ui, sans-serif" fontSize="22" fontWeight="700" fill="#7C3AED">LittleReads</text>
-      <text x="46" y="42" fontFamily="'Inter', system-ui, sans-serif" fontSize="9" fill="#9CA3AF" letterSpacing="0.3">Big Adventures for Little Readers</text>
-    </svg>
-  );
-}

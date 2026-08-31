@@ -30,7 +30,7 @@ export default async function AdminDashboardPage() {
 
   const stats = [
     { label: 'Total Revenue', value: formatPrice(totalRevenue), icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Total Orders', value: totalOrders || 0, icon: ShoppingBag, color: 'text-purple-700', bg: 'bg-purple-50' },
+    { label: 'Total Orders', value: totalOrders || 0, icon: ShoppingBag, color: 'text-brand-purple', bg: 'bg-purple-50' },
     { label: 'Customers', value: totalCustomers || 0, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
     { label: 'Products', value: totalProducts || 0, icon: Package, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Avg Order Value', value: formatPrice(averageOrderValue), icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },

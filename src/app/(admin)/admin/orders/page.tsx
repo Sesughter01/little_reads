@@ -62,7 +62,7 @@ export default async function AdminOrdersPage() {
                   <td className="px-6 py-4 text-right">
                     <Link
                       href={`/admin/orders/${order.id}`}
-                      className="p-2 text-gray-400 hover:text-purple-700 hover:bg-purple-50 rounded-xl inline-flex"
+                      className="p-2 text-gray-400 hover:text-brand-purple hover:bg-purple-50 rounded-xl inline-flex"
                     >
                       <Eye className="h-4 w-4" />
                     </Link>

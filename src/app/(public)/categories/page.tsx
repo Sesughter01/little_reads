@@ -47,7 +47,7 @@ export default async function CategoriesPage() {
             href={`/shop?category=${category.slug}`}
             className="card hover:border-purple-700 border-2 border-transparent transition-all group"
           >
-            <h2 className="text-xl font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-2">
+            <h2 className="text-xl font-bold text-gray-900 group-hover:text-brand-purple transition-colors mb-2">
               {category.name}
             </h2>
             {category.description && (

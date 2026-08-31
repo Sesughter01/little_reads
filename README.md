@@ -46,7 +46,6 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_xxxxxxxx
 PAYSTACK_SECRET_KEY=sk_test_xxxxxxxx
-PAYSTACK_WEBHOOK_SECRET=your_webhook_secret
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
@@ -121,7 +120,7 @@ npm start
 1. Create a Paystack account at [paystack.com](https://paystack.com)
 2. Get test keys from Settings > API Keys
 3. Set up webhook URL: `https://your-domain.com/api/webhooks/paystack`
-4. Add webhook secret to `PAYSTACK_WEBHOOK_SECRET`
+4. Webhook signature is verified using `PAYSTACK_SECRET_KEY` (Paystack uses the secret key for HMAC SHA-512)
 
 For local testing, use [ngrok](https://ngrok.com) or similar to expose localhost.
 

@@ -22,7 +22,7 @@ export default async function AccountPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Link href="/account/library" className="card text-center hover:border-purple-700 border-2 border-transparent transition-all">
-          <Library className="h-8 w-8 text-purple-700 mx-auto mb-2" />
+          <Library className="h-8 w-8 text-brand-purple mx-auto mb-2" />
           <p className="text-2xl font-bold text-gray-900">{purchasesCount || 0}</p>
           <p className="text-sm text-gray-500">Books</p>
         </Link>
