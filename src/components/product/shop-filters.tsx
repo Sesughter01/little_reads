@@ -76,7 +76,7 @@ export function ShopFilters({
         </select>
 
         {isOpen && (
-          <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setIsOpen(false)}>
+          <div className="fixed inset-0 z-50 bg-black/50 overflow-hidden" onClick={() => setIsOpen(false)}>
             <div
               className="absolute right-0 top-0 h-full w-80 bg-white p-6 overflow-y-auto"
               onClick={(e) => e.stopPropagation()}

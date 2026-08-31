@@ -45,7 +45,7 @@ export function Footer() {
           </div>
 
           {/* Newsletter */}
-          <div>
+          <div className="min-w-0">
             <h3 className="text-xs font-semibold text-white uppercase tracking-wider mb-3">Stay Updated</h3>
             <p className="text-sm text-gray-400 mb-3">Get notified about new books and offers.</p>
             <NewsletterForm />

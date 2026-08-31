@@ -206,7 +206,7 @@ export default async function HomePage() {
 
       {/* Newsletter CTA */}
       <section className="py-12 sm:py-16 bg-gradient-to-r from-purple-700 to-indigo-600 text-white">
-        <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 text-center overflow-hidden">
           <h2 className="text-2xl font-bold mb-3">Join the LittleReads Family</h2>
           <p className="text-white/80 mb-6 text-sm">Get updates on new books and special offers.</p>
           <NewsletterForm className="max-w-md mx-auto" />

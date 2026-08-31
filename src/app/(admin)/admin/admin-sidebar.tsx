@@ -33,14 +33,14 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ];
 
-  // Scroll lock
+  // Scroll lock (only vertical)
   useEffect(() => {
     if (sidebarOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflowY = 'hidden';
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflowY = '';
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => { document.body.style.overflowY = ''; };
   }, [sidebarOpen]);
 
   // Close sidebar on route change
@@ -126,7 +126,7 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
 
         {/* Sidebar - Mobile Drawer */}
         {sidebarOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 z-50 lg:hidden overflow-hidden">
             <div
               className="absolute inset-0 bg-black/40"
               onClick={() => setSidebarOpen(false)}

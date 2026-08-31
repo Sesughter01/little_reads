@@ -89,14 +89,14 @@ export function Header() {
     };
   }, []);
 
-  // Body scroll lock when drawer or search is open
+  // Body vertical scroll lock when drawer or search is open
   useEffect(() => {
     if (isDrawerOpen || isSearchOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflowY = 'hidden';
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflowY = '';
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => { document.body.style.overflowY = ''; };
   }, [isDrawerOpen, isSearchOpen]);
 
   // Close drawer on route change
@@ -396,7 +396,7 @@ export function Header() {
 
       {/* Mobile Navigation Drawer */}
       {isDrawerOpen && (
-        <div className="lg:hidden fixed inset-0 z-[60]" id="mobile-navigation">
+        <div className="lg:hidden fixed inset-0 z-[60] overflow-hidden" id="mobile-navigation">
           {/* Overlay */}
           <div
             className="absolute inset-0 bg-black/40 transition-opacity"
