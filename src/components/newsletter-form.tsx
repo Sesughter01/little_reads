@@ -34,14 +34,14 @@ export function NewsletterForm({ className = '' }: { className?: string }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className={`flex flex-col sm:flex-row gap-3 ${className}`}>
+    <form onSubmit={handleSubmit} className={`flex flex-col sm:flex-row gap-3 w-full ${className}`}>
       <input
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Enter your email"
         required
-        className="flex-1 px-4 py-3 rounded-xl text-gray-900 outline-none border border-gray-300 focus:border-purple-700 focus:ring-2 focus:ring-purple-700/20"
+        className="flex-1 min-w-0 px-4 py-3 rounded-xl text-gray-900 outline-none border border-gray-300 focus:border-purple-700 focus:ring-2 focus:ring-purple-700/20"
       />
       <button
         type="submit"
