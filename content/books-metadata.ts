@@ -25,7 +25,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['adventure', 'moon', 'courage', 'problem solving', 'magical quest', 'bedtime'],
     featured: true,
-    cover_path: 'generated/covers/zara-and-the-missing-moonbeam.png',
+    cover_path: 'generated/covers/zara-and-the-missing-moonbeam.svg',
     pdf_path: 'generated/ebooks/zara-and-the-missing-moonbeam.pdf',
   },
   {
@@ -52,7 +52,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['robot', 'invention', 'STEM', 'recycling', 'engineering', 'science fair'],
     featured: true,
-    cover_path: 'generated/covers/tobis-amazing-robot.png',
+    cover_path: 'generated/covers/tobis-amazing-robot.svg',
     pdf_path: 'generated/ebooks/tobis-amazing-robot.pdf',
   },
   {
@@ -79,7 +79,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['baobab', 'African', 'wisdom', 'nature', 'listening', 'village'],
     featured: true,
-    cover_path: 'generated/covers/amara-and-the-talking-baobab.png',
+    cover_path: 'generated/covers/amara-and-the-talking-baobab.svg',
     pdf_path: 'generated/ebooks/amara-and-the-talking-baobab.pdf',
   },
   {
@@ -106,7 +106,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['listening', 'empathy', 'lion', 'patience', 'savanna', 'life skills'],
     featured: false,
-    cover_path: 'generated/covers/the-little-lion-who-learned-to-listen.png',
+    cover_path: 'generated/covers/the-little-lion-who-learned-to-listen.svg',
     pdf_path: 'generated/ebooks/the-little-lion-who-learned-to-listen.pdf',
   },
   {
@@ -133,7 +133,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['school', 'confidence', 'first day', 'friends', 'nervous', 'courage'],
     featured: true,
-    cover_path: 'generated/covers/adas-first-day-of-school.png',
+    cover_path: 'generated/covers/adas-first-day-of-school.svg',
     pdf_path: 'generated/ebooks/adas-first-day-of-school.pdf',
   },
   {
@@ -160,7 +160,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['computer', 'technology', 'hardware', 'STEM', 'pixel', 'data'],
     featured: false,
-    cover_path: 'generated/covers/the-adventure-inside-my-computer.png',
+    cover_path: 'generated/covers/the-adventure-inside-my-computer.svg',
     pdf_path: 'generated/ebooks/the-adventure-inside-my-computer.pdf',
   },
   {
@@ -187,7 +187,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['garden', 'plants', 'ecosystem', 'nature', 'responsibility', 'biodiversity'],
     featured: false,
-    cover_path: 'generated/covers/kemi-and-the-secret-garden.png',
+    cover_path: 'generated/covers/kemi-and-the-secret-garden.svg',
     pdf_path: 'generated/ebooks/kemi-and-the-secret-garden.pdf',
   },
   {
@@ -214,7 +214,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['rain', 'water cycle', 'weather', 'science', 'clouds', 'environment'],
     featured: false,
-    cover_path: 'generated/covers/why-does-the-rain-fall.png',
+    cover_path: 'generated/covers/why-does-the-rain-fall.svg',
     pdf_path: 'generated/ebooks/why-does-the-rain-fall.pdf',
   },
   {
@@ -241,7 +241,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['maths', 'numbers', 'education', 'patterns', 'creativity', 'STEM'],
     featured: false,
-    cover_path: 'generated/covers/the-boy-who-befriended-numbers.png',
+    cover_path: 'generated/covers/the-boy-who-befriended-numbers.svg',
     pdf_path: 'generated/ebooks/the-boy-who-befriended-numbers.pdf',
   },
   {
@@ -268,7 +268,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['entrepreneurship', 'innovation', 'community', 'problem solving', 'water', 'Africa'],
     featured: false,
-    cover_path: 'generated/covers/nias-big-idea.png',
+    cover_path: 'generated/covers/nias-big-idea.svg',
     pdf_path: 'generated/ebooks/nias-big-idea.pdf',
   },
   {
@@ -295,7 +295,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['kindness', 'friendship', 'empathy', 'school', 'habits', 'community'],
     featured: true,
-    cover_path: 'generated/covers/the-kindness-jar.png',
+    cover_path: 'generated/covers/the-kindness-jar.svg',
     pdf_path: 'generated/ebooks/the-kindness-jar.pdf',
   },
   {
@@ -322,7 +322,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['space', 'planets', 'solar system', 'astronomy', 'rocket', 'STEM'],
     featured: true,
-    cover_path: 'generated/covers/chidis-trip-to-space.png',
+    cover_path: 'generated/covers/chidis-trip-to-space.svg',
     pdf_path: 'generated/ebooks/chidis-trip-to-space.pdf',
   },
   {
@@ -349,7 +349,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['water conservation', 'environment', 'community', 'sustainability', 'Africa', 'teamwork'],
     featured: false,
-    cover_path: 'generated/covers/the-village-that-saved-water.png',
+    cover_path: 'generated/covers/the-village-that-saved-water.svg',
     pdf_path: 'generated/ebooks/the-village-that-saved-water.pdf',
   },
   {
@@ -376,7 +376,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['plants', 'patience', 'growth', 'garden', 'seeds', 'nature'],
     featured: false,
-    cover_path: 'generated/covers/maya-and-the-brave-little-seed.png',
+    cover_path: 'generated/covers/maya-and-the-brave-little-seed.svg',
     pdf_path: 'generated/ebooks/maya-and-the-brave-little-seed.pdf',
   },
   {
@@ -403,7 +403,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['internet safety', 'online safety', 'passwords', 'cyberbullying', 'technology', 'digital literacy'],
     featured: false,
-    cover_path: 'generated/covers/my-first-internet-safety-book.png',
+    cover_path: 'generated/covers/my-first-internet-safety-book.svg',
     pdf_path: 'generated/ebooks/my-first-internet-safety-book.pdf',
   },
   {
@@ -430,7 +430,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['teamwork', 'friendship', 'collaboration', 'bridge', 'problem solving', 'diversity'],
     featured: false,
-    cover_path: 'generated/covers/the-three-friends-and-the-broken-bridge.png',
+    cover_path: 'generated/covers/the-three-friends-and-the-broken-bridge.svg',
     pdf_path: 'generated/ebooks/the-three-friends-and-the-broken-bridge.pdf',
   },
   {
@@ -457,7 +457,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['scientific method', 'experiments', 'science', 'STEM', 'observation', 'hypothesis'],
     featured: false,
-    cover_path: 'generated/covers/the-day-i-became-a-young-scientist.png',
+    cover_path: 'generated/covers/the-day-i-became-a-young-scientist.svg',
     pdf_path: 'generated/ebooks/the-day-i-became-a-young-scientist.pdf',
   },
   {
@@ -484,7 +484,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['money', 'saving', 'spending', 'financial literacy', 'goals', 'budgeting'],
     featured: false,
-    cover_path: 'generated/covers/amina-learns-to-save.png',
+    cover_path: 'generated/covers/amina-learns-to-save.svg',
     pdf_path: 'generated/ebooks/amina-learns-to-save.pdf',
   },
   {
@@ -511,7 +511,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['mystery', 'adventure', 'logic', 'puzzles', 'detective', 'friendship'],
     featured: false,
-    cover_path: 'generated/covers/the-mystery-of-rainbow-hill.png',
+    cover_path: 'generated/covers/the-mystery-of-rainbow-hill.svg',
     pdf_path: 'generated/ebooks/the-mystery-of-rainbow-hill.pdf',
   },
   {
@@ -538,7 +538,7 @@ export const booksMetadata: BookMetadata[] = [
     ],
     keywords: ['bedtime', 'sleep', 'imagination', 'adventure', 'calm', 'dreams'],
     featured: true,
-    cover_path: 'generated/covers/goodnight-little-explorer.png',
+    cover_path: 'generated/covers/goodnight-little-explorer.svg',
     pdf_path: 'generated/ebooks/goodnight-little-explorer.pdf',
   },
 ];
@@ -557,7 +557,7 @@ export const sampleReviews = [
   { book_slug: 'goodnight-little-explorer', name: 'Yusuf', rating: 4, title: 'Calm and sweet', content: 'Gentle story that helps my children wind down. The illustrations in our imagination are wonderful.' },
   { book_slug: 'my-first-internet-safety-book', name: 'Grace', rating: 5, title: 'Essential reading', content: 'Every parent should read this with their child. It covers online safety without being scary.' },
   { book_slug: 'my-first-internet-safety-book', name: 'Oluwaseun', rating: 5, title: 'Important for today\'s kids', content: 'Finally a book that teaches internet safety in a way children understand. Well written.' },
-  { book_slug: 'mystery-rainbow-hill', name: 'Doris', rating: 4, title: 'Fun mystery story', content: 'My daughter loved solving the clues along with Tolu and Sam. Great for developing logical thinking.' },
+  { book_slug: 'the-mystery-of-rainbow-hill', name: 'Doris', rating: 4, title: 'Fun mystery story', content: 'My daughter loved solving the clues along with Tolu and Sam. Great for developing logical thinking.' },
   { book_slug: 'amina-learns-to-save', name: 'Maryam', rating: 5, title: 'Changed our pocket money routine', content: 'Now Amina (yes, same name!) saves her pocket money wisely. Great financial literacy for children.' },
   { book_slug: 'the-village-that-saved-water', name: 'Ibrahim', rating: 4, title: 'Important environmental message', content: 'Teaches water conservation in a way that is relevant for African children. Well done.' },
 ];

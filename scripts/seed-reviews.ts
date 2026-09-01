@@ -21,7 +21,7 @@ const reviews = [
   { book_slug: 'goodnight-little-explorer', rating: 4, title: 'Calm and sweet', content: 'Gentle story that helps my children wind down. The illustrations in our imagination are wonderful.' },
   { book_slug: 'my-first-internet-safety-book', rating: 5, title: 'Essential reading', content: 'Every parent should read this with their child. It covers online safety without being scary.' },
   { book_slug: 'my-first-internet-safety-book', rating: 5, title: 'Important for today\'s kids', content: 'Finally a book that teaches internet safety in a way children understand. Well written.' },
-  { book_slug: 'mystery-rainbow-hill', rating: 4, title: 'Fun mystery story', content: 'My daughter loved solving the clues along with Tolu and Sam. Great for developing logical thinking.' },
+  { book_slug: 'the-mystery-of-rainbow-hill', rating: 4, title: 'Fun mystery story', content: 'My daughter loved solving the clues along with Tolu and Sam. Great for developing logical thinking.' },
   { book_slug: 'amina-learns-to-save', rating: 5, title: 'Changed our pocket money routine', content: 'Now Amina saves her pocket money wisely. Great financial literacy for children.' },
   { book_slug: 'the-village-that-saved-water', rating: 4, title: 'Important environmental message', content: 'Teaches water conservation in a way that is relevant for African children. Well done.' },
 ];
