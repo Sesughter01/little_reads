@@ -1,5 +1,5 @@
-import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { redirect, notFound } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import type { Profile } from '@/types';
 
 /**
@@ -30,10 +30,10 @@ export async function requireUser(): Promise<{ userId: string; profile: Profile 
 
 /**
  * Require admin role. Redirects to / if not admin.
- * Uses server-side service client to check the database role.
+ * Uses the authenticated user's own session (anon key) to verify role — never the service-role key.
  */
 export async function requireAdmin(): Promise<{ userId: string; profile: Profile }> {
-  const supabase = await createServiceClient();
+  const supabase = await createClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 

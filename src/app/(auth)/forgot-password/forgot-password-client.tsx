@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { BookOpen, Mail, ArrowRight, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export function ForgotPasswordClient() {
+export default function ForgotPasswordClient() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);

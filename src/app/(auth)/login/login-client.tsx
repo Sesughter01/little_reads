@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { BookOpen, Mail, Lock, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export function LoginClient() {
+export default function LoginClient() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,9 +31,7 @@ export function LoginClient() {
     }
 
     toast.success('Welcome back!');
-    const searchParams = new URLSearchParams(window.location.search);
-    const redirect = searchParams.get('redirect') || '/account';
-    router.push(redirect);
+    router.push('/account');
     router.refresh();
   };
 

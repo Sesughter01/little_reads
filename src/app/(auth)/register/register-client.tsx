@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { BookOpen, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export function RegisterClient() {
+export default function RegisterClient() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -50,9 +50,7 @@ export function RegisterClient() {
     }
 
     toast.success('Account created! Welcome to LittleReads.');
-    const searchParams = new URLSearchParams(window.location.search);
-    const redirect = searchParams.get('redirect') || '/account';
-    router.push(redirect);
+    router.push('/account');
     router.refresh();
   };
 
