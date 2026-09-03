@@ -1,5 +1,7 @@
 import { requireAdmin } from '@/lib/auth';
 import { createServiceClient } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
 import { Star } from 'lucide-react';
 
 export default async function AdminReviewsPage() {

@@ -1,5 +1,7 @@
 import { requireAdmin } from '@/lib/auth';
 import { createServiceClient } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { DollarSign, ShoppingBag, Users, Package, TrendingUp, Star } from 'lucide-react';
 

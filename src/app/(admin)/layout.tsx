@@ -1,6 +1,8 @@
 import { requireAdmin } from '@/lib/auth';
 import AdminLayout from './admin/layout';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Server-side admin guard.
  * Verifies the user has admin role before rendering the admin client layout.

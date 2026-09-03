@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { BookOpen, Mail, Lock, ArrowRight, KeyRound } from 'lucide-react';
+import { BookOpen, Mail, Lock, ArrowRight, KeyRound, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function LoginClient() {
+export default function AdminLoginClient() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -33,11 +33,29 @@ export default function LoginClient() {
       return;
     }
 
-    toast.success('Welcome back!');
+    // Verify admin role
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Authentication failed');
+      setIsLoading(false);
+      return;
+    }
 
-    const params = new URLSearchParams(window.location.search);
-    const redirectTo = params.get('redirect') || '/account';
-    router.push(redirectTo);
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
+      await supabase.auth.signOut();
+      toast.error('Access denied. Admin privileges required.');
+      setIsLoading(false);
+      return;
+    }
+
+    toast.success('Welcome to Admin Panel!');
+    router.push('/admin');
     router.refresh();
   };
 
@@ -73,15 +91,35 @@ export default function LoginClient() {
       setIsLoading(false);
       return;
     }
-    toast.success('Welcome back!');
-    const params = new URLSearchParams(window.location.search);
-    const redirectTo = params.get('redirect') || '/account';
-    router.push(redirectTo);
+
+    // Verify admin role
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Authentication failed');
+      setIsLoading(false);
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
+      await supabase.auth.signOut();
+      toast.error('Access denied. Admin privileges required.');
+      setIsLoading(false);
+      return;
+    }
+
+    toast.success('Welcome to Admin Panel!');
+    router.push('/admin');
     router.refresh();
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -91,12 +129,15 @@ export default function LoginClient() {
               LittleReads
             </span>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 mt-6">Welcome Back</h1>
-          <p className="text-gray-500 mt-2">Sign in to your account</p>
+          <div className="flex items-center justify-center gap-2 mt-6">
+            <Shield className="h-6 w-6 text-brand-purple" />
+            <h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
+          </div>
+          <p className="text-gray-500 mt-2">Admin access only</p>
         </div>
 
         {/* Login Mode Toggle */}
-        <div className="flex rounded-xl bg-gray-100 p-1 mb-6">
+        <div className="flex rounded-xl bg-gray-200 p-1 mb-6">
           <button
             type="button"
             onClick={() => setLoginMode('password')}
@@ -129,7 +170,7 @@ export default function LoginClient() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="input pl-10"
-                    placeholder="you@example.com"
+                    placeholder="admin@littlereads.com"
                   />
                 </div>
               </div>
@@ -149,15 +190,6 @@ export default function LoginClient() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end">
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-brand-purple hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-
               <button
                 type="submit"
                 disabled={isLoading}
@@ -167,7 +199,7 @@ export default function LoginClient() {
                   <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
                 ) : (
                   <>
-                    Sign In
+                    Sign In as Admin
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </>
                 )}
@@ -185,7 +217,7 @@ export default function LoginClient() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="input pl-10"
-                    placeholder="you@example.com"
+                    placeholder="admin@littlereads.com"
                     disabled={otpSent}
                   />
                 </div>
@@ -236,9 +268,8 @@ export default function LoginClient() {
         </div>
 
         <p className="text-center mt-6 text-sm text-gray-500">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-brand-purple font-semibold hover:underline">
-            Create one
+          <Link href="/login" className="text-brand-purple font-semibold hover:underline">
+            ← Back to customer login
           </Link>
         </p>
       </div>

@@ -1,6 +1,8 @@
 import { requireAdmin } from '@/lib/auth';
 import { createServiceClient } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminCategoriesPage() {
   await requireAdmin();
   const supabase = await createServiceClient();

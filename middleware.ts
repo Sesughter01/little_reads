@@ -34,10 +34,13 @@ export async function middleware(request: NextRequest) {
 
   // Admin routes: require authenticated user with admin role
   if (pathname.startsWith('/admin')) {
+    // Allow the admin login page itself
+    if (pathname === '/admin/login') {
+      return supabaseResponse;
+    }
     if (!user) {
       const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      url.searchParams.set('redirect', pathname);
+      url.pathname = '/admin/login';
       return NextResponse.redirect(url);
     }
 

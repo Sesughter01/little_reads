@@ -1,5 +1,7 @@
 import { requireAdmin } from '@/lib/auth';
 import { createServiceClient } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { Plus, Edit, Eye, BookOpen } from 'lucide-react';

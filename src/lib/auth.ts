@@ -48,11 +48,11 @@ export async function requireAdmin(): Promise<{ userId: string; profile: Profile
     .single();
 
   if (profileError || !profile) {
-    redirect('/login');
+    redirect('/admin/login');
   }
 
   if (profile.role !== 'admin') {
-    redirect('/');
+    redirect('/admin/login');
   }
 
   return { userId: user.id, profile: profile as Profile };

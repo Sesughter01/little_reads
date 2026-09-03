@@ -38,20 +38,22 @@ export default function RegisterClient() {
       return;
     }
 
-    // Create profile
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        first_name: firstName,
-        last_name: lastName,
-        email,
-        role: 'customer',
-      });
-    }
+    // Profile is auto-created by the handle_new_user() trigger.
+    // The trigger reads first_name/last_name from raw_user_meta_data
+    // which we pass via options.data above.
 
-    toast.success('Account created! Welcome to LittleReads.');
-    router.push('/account');
-    router.refresh();
+    // If Supabase returns a session, email verification is disabled — sign in immediately
+    if (data.session) {
+      toast.success('Account created! Welcome to LittleReads.');
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = params.get('redirect') || '/account';
+      router.push(redirectTo);
+      router.refresh();
+    } else {
+      // Email verification is enabled — show confirmation message
+      toast.success('Account created! Please check your email to verify your account.');
+      router.push('/login');
+    }
   };
 
   return (

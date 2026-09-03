@@ -5,6 +5,8 @@ import { formatPrice, getAgeRangeText } from '@/lib/utils';
 import { AddToCartButton } from '@/components/cart/add-to-cart-button';
 import type { Product, Category } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Shop',
   description: 'Browse our collection of educational children\'s ebooks',

@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { BookOpen, Search, House } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function NotFound() {
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">

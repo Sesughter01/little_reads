@@ -6,6 +6,8 @@ import { AddToCartButton } from '@/components/cart/add-to-cart-button';
 import { BuyNowButton } from '@/components/checkout/buy-now-button';
 import type { Metadata } from 'next';
 
+export const dynamic = 'force-dynamic';
+
 async function safeGetProduct(slug: string) {
   try {
     const { getProductBySlug } = await import('@/lib/db');

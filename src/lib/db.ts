@@ -50,15 +50,30 @@ export async function getProducts(params?: {
   }
 
   if (params?.category) {
-    query = query.eq('category:categories.slug', params.category);
+    const { data: cat, error: catErr } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', params.category)
+      .maybeSingle();
+
+    if (catErr) {
+      console.error('Category lookup failed:', catErr.message, catErr.code);
+      return { products: [], total: 0 };
+    }
+
+    if (cat) {
+      query = query.eq('category_id', cat.id);
+    } else {
+      return { products: [], total: 0 };
+    }
   }
 
   if (params?.age_min) {
-    query = query.lte('age_min', params.age_min);
+    query = query.gte('age_max', params.age_min);
   }
 
   if (params?.age_max) {
-    query = query.gte('age_max', params.age_max);
+    query = query.lte('age_min', params.age_max);
   }
 
   if (params?.min_price) {

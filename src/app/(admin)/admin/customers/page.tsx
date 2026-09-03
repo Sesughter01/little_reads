@@ -1,5 +1,7 @@
 import { requireAdmin } from '@/lib/auth';
 import { createServiceClient } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
 import { formatDate } from '@/lib/utils';
 
 export default async function AdminCustomersPage() {

@@ -1,5 +1,7 @@
 import { requireUser } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { BookOpen, Download } from 'lucide-react';
 import { formatDate } from '@/lib/utils';

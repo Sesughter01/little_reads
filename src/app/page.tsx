@@ -4,6 +4,8 @@ import { BookCard } from '@/components/product/book-card';
 import { NewsletterForm } from '@/components/newsletter-form';
 import type { Product, Category } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 async function safeGetProducts(params?: { featured?: boolean; sort?: string; limit?: number }) {
   try {
     const { getProducts } = await import('@/lib/db');

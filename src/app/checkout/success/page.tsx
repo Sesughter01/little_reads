@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { CheckCircle, Download, ShoppingBag, ArrowRight, Library } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
