@@ -15,7 +15,9 @@ import {
   Megaphone,
   Menu,
   X,
+  Search,
 } from 'lucide-react';
+import { AdminSearch } from './admin-search';
 import { LittleReadsIcon } from '@/components/brand/littlereads-icon';
 import { SignOutButton } from '@/components/auth/sign-out-button';
 
@@ -62,10 +64,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => document.removeEventListener('keydown', handleEscape);
   }, [handleEscape]);
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 flex items-center justify-between sticky top-0 z-40">
+  return (      <div className="min-h-screen bg-gray-50 flex">
+      {/* Top bar — fixed at top */}
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 flex items-center justify-between fixed top-0 left-0 right-0 z-40">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -84,12 +85,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/" className="text-sm text-gray-500 hover:text-brand-purple transition-colors">
             View Store
           </Link>
+          <AdminSearch />
         </div>
       </div>
 
       <div className="flex">
-        {/* Sidebar - Desktop */}
-        <aside className="hidden lg:block w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-53px)] sticky top-[53px]">
+        {/* Sidebar - Desktop: fixed in viewport, scrolls internally */}
+        <aside className="hidden lg:block w-64 bg-white border-r border-gray-200 flex-shrink-0 overflow-y-auto fixed top-[53px] left-0 h-[calc(100vh-53px)]">
           <nav className="p-4 space-y-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
@@ -110,7 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             })}
           </nav>
           <div className="p-4 border-t border-gray-100 mt-4">
-            <SignOutButton />
+            <SignOutButton redirectTo="/admin/login" />
           </div>
         </aside>
 
@@ -157,14 +159,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 })}
               </nav>
               <div className="p-4 border-t border-gray-100">
-                <SignOutButton />
-              </div>
+              <SignOutButton redirectTo="/admin/login" label="Sign Out" />
+            </div>
             </div>
           </div>
         )}
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-8">{children}</main>
+        {/* Main Content — offset by sidebar on desktop */}
+        <main className="flex-1 p-4 lg:p-8 lg:ml-[16rem]">{children}</main>
       </div>
     </div>
   );

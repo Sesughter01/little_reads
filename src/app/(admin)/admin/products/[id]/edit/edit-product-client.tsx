@@ -647,14 +647,24 @@ export function EditProductClient({
                     {pdfPath ? 'Replace PDF' : 'Upload PDF'}
                   </button>
                   {pdfPath && (
-                    <button
-                      type="button"
-                      onClick={handleRemovePdf}
-                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                      Remove
-                    </button>
+                    <>
+                      <a
+                        href={`/api/admin/products/${productId}/download`}
+                        download
+                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-brand-green bg-brand-green/10 hover:bg-brand-green/20 rounded-xl transition-colors"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Download Ebook
+                      </a>
+                      <button
+                        type="button"
+                        onClick={handleRemovePdf}
+                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                        Remove
+                      </button>
+                    </>
                   )}
                 </div>
                 <p className="text-xs text-gray-400 mt-2">PDF only. Max 50MB. Stored privately.</p>

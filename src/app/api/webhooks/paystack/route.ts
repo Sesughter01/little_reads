@@ -44,6 +44,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing reference' }, { status: 400 });
     }
 
+    // Safe fulfillment tracing for Vercel logs (mask reference, never
+    // include credentials).
+    console.log('REFERENCE_RECEIVED', { ref: maskReference(reference) });
+    console.log('PAYSTACK_VERIFY_STARTED', { ref: maskReference(reference) });
+
     // Safe diagnostics — reference is masked, no credentials ever logged.
     console.log('PAYSTACK_WEBHOOK_RECEIVED', {
       event: event.event,
@@ -56,13 +61,15 @@ export async function POST(request: NextRequest) {
 
     const result = await fulfillPaidOrder(reference);
 
-    console.log('PAYSTACK_WEBHOOK_FULFILLMENT', {
+    console.log('FULFILLMENT_COMPLETE', {
       ref: maskReference(reference),
       code: result.code,
       ok: result.ok,
-      orderStatus: result.orderStatus,
       orderMarkedPaid: result.orderMarkedPaid,
       purchasesCreated: result.purchasesCreated,
+      purchasesAlreadyExisting: result.purchasesAlreadyExisting,
+      orderStatus: result.orderStatus,
+      userId: undefined,
     });
 
     if (!result.ok) {

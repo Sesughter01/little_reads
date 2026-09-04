@@ -2,22 +2,22 @@
 
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
-
-interface SignOutButtonProps {
+import { createClient } from '@/lib/supabase/client';interface SignOutButtonProps {
   /** Visual variant */
   variant?: 'sidebar' | 'inline';
   /** Optional label override */
   label?: string;
+  /** Where to send the user after sign-out. Defaults to / for customer contexts. */
+  redirectTo?: string;
 }
-
-export function SignOutButton({ variant = 'sidebar', label = 'Sign Out' }: SignOutButtonProps) {
+export function SignOutButton({ variant = 'sidebar', label = 'Sign Out', redirectTo }: SignOutButtonProps) {
   const router = useRouter();
+  const destination = redirectTo ?? '/';
 
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/');
+    router.replace(destination);
   };
 
   if (variant === 'inline') {

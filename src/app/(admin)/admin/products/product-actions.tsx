@@ -3,15 +3,17 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Pencil, Eye, EyeOff, Archive, Trash2, Loader2 } from 'lucide-react';
+import { Pencil, Eye, EyeOff, Archive, Trash2, Loader2, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function ProductActions({
   productId,
   published,
+  productPdfPath,
 }: {
   productId: string;
   published: boolean;
+  productPdfPath?: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<'publish' | 'delete' | null>(null);
@@ -87,6 +89,16 @@ export function ProductActions({
       >
         <Pencil className="h-4 w-4" />
       </Link>
+      {productPdfPath && (
+        <a
+          href={`/api/admin/products/${productId}/download`}
+          download
+          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl"
+          title="Download Ebook"
+        >
+          <FileText className="h-4 w-4" />
+        </a>
+      )}
       <button
         type="button"
         onClick={deleteOrArchive}

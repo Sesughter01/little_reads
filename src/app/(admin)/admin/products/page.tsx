@@ -72,7 +72,7 @@ export default async function AdminProductsPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <ProductActions productId={product.id} published={product.published} />
+                      <ProductActions productId={product.id} published={product.published} productPdfPath={product.pdf_path ?? null} />
                     </td>
                   </tr>
                 );
