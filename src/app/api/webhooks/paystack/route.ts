@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyWebhookSignature } from '@/lib/paystack';
-import { fulfillPaidOrder } from '@/lib/fulfillment';
+import { fulfillPaidOrder, maskReference } from '@/lib/fulfillment';
 
 /**
  * Paystack webhook.
@@ -44,7 +44,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing reference' }, { status: 400 });
     }
 
+    // Safe diagnostics — reference is masked, no credentials ever logged.
+    console.log('PAYSTACK_WEBHOOK_RECEIVED', {
+      event: event.event,
+      ref: maskReference(reference),
+    });
+    console.log('PAYSTACK_SIGNATURE_VALID', {
+      event: event.event,
+      ref: maskReference(reference),
+    });
+
     const result = await fulfillPaidOrder(reference);
+
+    console.log('PAYSTACK_WEBHOOK_FULFILLMENT', {
+      ref: maskReference(reference),
+      code: result.code,
+      ok: result.ok,
+      orderStatus: result.orderStatus,
+      orderMarkedPaid: result.orderMarkedPaid,
+      purchasesCreated: result.purchasesCreated,
+    });
 
     if (!result.ok) {
       // Not-fulfilled states (verification/DB/purchase failures) return 500 so

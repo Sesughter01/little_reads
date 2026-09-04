@@ -6,6 +6,7 @@ import {
   nairaToKobo,
   isPaystackConfigured,
 } from '@/lib/paystack';
+import { buildCheckoutCallbackUrl } from '@/lib/checkout-callback';
 import { z } from 'zod';
 
 /**
@@ -180,14 +181,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Paystack transaction
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    // Initialize Paystack transaction. The callback URL is derived from the
+    // ACTUAL request origin (never a build-time NEXT_PUBLIC_SITE_URL) so that
+    // payment returns land on the same deployment the customer started on -
+    // Production, Preview, or localhost.
+    const callback_url = buildCheckoutCallbackUrl(request.headers, paystack_reference);
 
     const paystackResponse = await initializePaystackTransaction({
       email: accountEmail,
       amount: nairaToKobo(total),
       reference: paystack_reference,
-      callback_url: `${siteUrl}/checkout/success?ref=${paystack_reference}`,
+      callback_url,
       metadata: {
         order_id: order.id,
         customer_name,

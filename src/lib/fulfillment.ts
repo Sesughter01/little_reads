@@ -1,6 +1,16 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { verifyPaystackTransaction } from '@/lib/paystack';
 
+/**
+ * Mask a Paystack reference for safe server logs — never log full
+ * transaction references.
+ */
+export function maskReference(ref: string | null | undefined): string {
+  if (!ref) return '(none)';
+  if (ref.length <= 10) return `${ref.slice(0, 2)}…`;
+  return `${ref.slice(0, 3)}…${ref.slice(-4)}`;
+}
+
 export type FulfillmentResult = {
   ok: boolean;
   /** HTTP-ish status the caller should reflect (200 = processed, 500 = retry). */

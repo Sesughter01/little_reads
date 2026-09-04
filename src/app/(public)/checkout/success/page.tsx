@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { CheckCircle, ArrowRight, Library, AlertTriangle, Loader2 } from 'lucide-react';
 import { requireUser } from '@/lib/auth';
 import { createServiceClient } from '@/lib/supabase/server';
-import { fulfillPaidOrder } from '@/lib/fulfillment';
+import { fulfillPaidOrder, maskReference } from '@/lib/fulfillment';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,8 +64,14 @@ export default async function CheckoutSuccessPage({
 
   // Success UI must never be trusted on its own — reconcile server-side with
   // the authenticated user's session.
+  console.log('CHECKOUT_RETURN_RECEIVED', { ref: maskReference(ref) });
   const { userId } = await requireUser();
+  console.log('RETURN_USER_AUTHENTICATED', { userId });
   const result = await reconcile(ref, userId);
+  console.log('RETURN_FULFILLMENT_COMPLETE', {
+    ref: maskReference(ref),
+    state: result.state,
+  });
 
   return <SuccessShell result={result} />;
 }

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { OrderStatusSelect } from './order-status-select';
+import { VerifyPaymentButton } from './verify-payment-button';
 
 export default async function AdminOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
@@ -41,6 +42,9 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
             {order.status}
           </span>
           <OrderStatusSelect orderId={order.id} currentStatus={order.status} />
+          {order.paystack_reference && order.status !== 'paid' && (
+            <VerifyPaymentButton orderId={order.id} />
+          )}
         </div>
       </div>
 

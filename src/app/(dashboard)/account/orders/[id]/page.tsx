@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { redirect, notFound } from 'next/navigation';
 
+import { CheckPaymentButton } from './check-payment-button';
+
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -62,6 +64,18 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <div className="flex justify-between"><dt className="text-gray-500">Reference</dt><dd className="font-mono text-xs">{order.paystack_reference || '-'}</dd></div>
         </dl>
       </div>
+
+      {(order.status === 'pending' || order.status === 'paid') &&
+        order.paystack_reference && (
+          <div className="card mt-4 border-amber-100 bg-amber-50/40">
+            <p className="text-sm text-gray-600">
+              Your payment can be re-verified safely against Paystack at any
+              time — useful if the webhook or return page was interrupted and
+              your library hasn&apos;t updated.
+            </p>
+            <CheckPaymentButton orderId={order.id} />
+          </div>
+        )}
     </div>
   );
 }
