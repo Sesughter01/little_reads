@@ -1,55 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth';
-import { z } from 'zod';
-
-export const productInputSchema = z.object({
-  title: z.string().min(1).max(200),
-  slug: z
-    .string()
-    .min(1)
-    .max(200)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase with hyphens'),
-  author: z.string().min(1).max(200),
-  short_description: z.string().min(1).max(500),
-  description: z.string().max(10000).optional().default(''),
-  price: z.number().min(0).max(1000000),
-  sale_price: z.number().min(0).max(1000000).nullable().optional(),
-  age_min: z.number().int().min(0).max(18),
-  age_max: z.number().int().min(0).max(18),
-  reading_level: z.string().max(50).optional().default('Beginner'),
-  page_count: z.number().int().min(1).max(10000).optional().default(12),
-  reading_time: z.string().max(50).optional().default('8 min'),
-  category_id: z.string().uuid().nullable().optional(),
-  featured: z.boolean().optional().default(false),
-  published: z.boolean().optional().default(false),
-});
+import { requireAdminApi } from '@/lib/auth';
+import { productInputSchema, productValidationMessage } from '@/lib/product-validation';
 
 /**
  * POST /api/admin/products — create a product (server-validated, admin-only).
+ *
+ * Error contract:
+ *   400 invalid payload / invalid sale price / invalid age range / bad category
+ *   401 unauthenticated
+ *   403 authenticated non-admin
+ *   409 duplicate slug
+ *   500 unexpected database/server failure
  */
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const auth = await requireAdminApi();
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
     const body = await request.json().catch(() => null);
     const parsed = productInputSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid product data', details: parsed.error.flatten() },
-        { status: 400 }
-      );
+      const { message } = productValidationMessage(parsed.error);
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
     const input = parsed.data;
-    if (input.age_max < input.age_min) {
+
+    // A book cannot be published at creation: it has no PDF yet (assets are
+    // uploaded after the product row exists). Publishing happens on the edit
+    // screen once the ebook PDF is in place.
+    if (input.published) {
       return NextResponse.json(
-        { error: 'Maximum age must be greater than or equal to minimum age' },
+        { error: 'Create the book as a draft first, upload the ebook PDF, then publish it.' },
         { status: 400 }
       );
     }
 
     const supabase = await createServiceClient();
+
+    // Validate category reference up-front (avoids a generic FK 500).
+    if (input.category_id) {
+      const { data: cat } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('id', input.category_id)
+        .maybeSingle();
+      if (!cat) {
+        return NextResponse.json(
+          { error: 'The selected category is invalid' },
+          { status: 400 }
+        );
+      }
+    }
+
     const { data, error } = await supabase
       .from('products')
       .insert({
@@ -79,15 +85,32 @@ export async function POST(request: NextRequest) {
           { status: 409 }
         );
       }
-      console.error('Error creating product:', error);
+      if (error.code === '23514') {
+        // Database CHECK violation — should be prevented by validation above.
+        return NextResponse.json(
+          { error: 'Product data violates a business rule (check price, sale price and age range)' },
+          { status: 400 }
+        );
+      }
+      if (error.code === '23503') {
+        return NextResponse.json(
+          { error: 'The selected category is invalid' },
+          { status: 400 }
+        );
+      }
+      console.error('create product db error:', {
+        op: 'admin.createProduct',
+        code: error.code,
+        message: error.message,
+      });
       return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
     }
 
+    // Return the new product id so the caller can continue to Step 2
+    // (cover/PDF upload) against the real product id.
     return NextResponse.json({ success: true, product: data });
   } catch (error) {
-    if (error instanceof Error && error.message.includes('redirect')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    console.error('create product error:', { op: 'admin.createProduct', error });
     return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
   }
 }

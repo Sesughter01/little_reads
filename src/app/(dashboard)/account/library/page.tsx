@@ -3,24 +3,54 @@ import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 import Link from 'next/link';
-import { BookOpen, Download } from 'lucide-react';
+import { BookOpen, Download, AlertTriangle } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
 export default async function LibraryPage() {
   const { profile } = await requireUser();
   const supabase = await createClient();
 
-  const { data: purchases } = await supabase
+  // Capture BOTH data and error: a failed query must not masquerade as an
+  // empty library.
+  const { data: purchases, error } = await supabase
     .from('purchases')
     .select('*, product:products(id, title, slug, cover_url, author, pdf_path)')
     .eq('user_id', profile.id)
     .order('purchased_at', { ascending: false });
 
+  if (error) {
+    console.error('Library query failed:', {
+      op: 'account.library',
+      code: error.code,
+      message: error.message,
+    });
+    return (
+      <div>
+        <h2 className="text-xl font-bold text-gray-900 mb-6">My Library</h2>
+        <div className="text-center py-16">
+          <AlertTriangle className="h-14 w-14 text-red-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            We couldn&apos;t load your library
+          </h3>
+          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+            Please try again in a moment. If the problem persists, contact
+            support.
+          </p>
+          <Link href="/account" className="btn-secondary">
+            Back to My Account
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const hasPurchases = purchases && purchases.length > 0;
+
   return (
     <div>
       <h2 className="text-xl font-bold text-gray-900 mb-6">My Library</h2>
 
-      {purchases && purchases.length > 0 ? (
+      {hasPurchases ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {purchases.map((purchase) => {
             const product = purchase.product as unknown as {

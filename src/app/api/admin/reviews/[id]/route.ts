@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdminApi } from '@/lib/auth';
 import { z } from 'zod';
 import { ALLOWED_REVIEW_STATUSES } from '@/lib/review-status';
 
@@ -19,7 +19,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const auth = await requireAdminApi();
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
     const { id } = await params;
     const body = await request.json().catch(() => null);
     const parsed = moderationSchema.safeParse(body);
@@ -55,9 +58,6 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, review: data });
   } catch (error) {
-    if (error instanceof Error && error.message.includes('redirect')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     return NextResponse.json(
       { error: 'Failed to update review' },
       { status: 500 }

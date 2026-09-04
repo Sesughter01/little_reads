@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { ErrorContent } from '@/components/layout/error-content';
 
-export default function Error({
+export default function PublicError({
   error,
   reset,
 }: {

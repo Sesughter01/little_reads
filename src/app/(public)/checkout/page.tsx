@@ -68,7 +68,8 @@ export default function CheckoutPage() {
     setIsProcessing(true);
 
     try {
-      // Create order and initialize payment
+      // Create order and initialize payment. Ownership is derived server-side
+      // from the authenticated session — never from a client-supplied userId.
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,7 +82,6 @@ export default function CheckoutPage() {
             title: item.title,
             price: item.price,
           })),
-          userId: user?.id,
         }),
       });
 
@@ -172,11 +172,16 @@ export default function CheckoutPage() {
                 <input
                   type="email"
                   required
+                  readOnly
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="input"
+                  className="input bg-gray-50"
                   placeholder="you@example.com"
+                  title="Orders are attached to your signed-in account email."
                 />
+                <p className="text-xs text-gray-400 mt-1">
+                  Orders are attached to your account email.
+                </p>
               </div>
               <div>
                 <label className="label">Phone Number</label>

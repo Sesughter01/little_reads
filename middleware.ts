@@ -80,7 +80,10 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
-      url.searchParams.set('redirect', '/checkout');
+      // Preserve the full intended destination (including ?ref=...) so the
+      // payment return page can reconcile the order after sign-in.
+      const redirectTo = `${pathname}${request.nextUrl.search}`;
+      url.searchParams.set('redirect', redirectTo);
       return NextResponse.redirect(url);
     }
   }

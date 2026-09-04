@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdminApi } from '@/lib/auth';
 import { z } from 'zod';
 
 const categorySchema = z.object({
@@ -18,7 +18,10 @@ const categorySchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const auth = await requireAdminApi();
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
     const body = await request.json().catch(() => null);
     const parsed = categorySchema.safeParse(body);
 
@@ -53,9 +56,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, category: data });
   } catch (error) {
-    if (error instanceof Error && error.message.includes('redirect')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     return NextResponse.json({ error: 'Failed to create category' }, { status: 500 });
   }
 }

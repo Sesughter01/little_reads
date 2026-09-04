@@ -1,14 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth';
+import { createServiceClient } from '@/lib/supabase/server';
+import { requireAdminApi } from '@/lib/auth';
 
+const COVER_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+const COVER_MAX_BYTES = 10 * 1024 * 1024;
+const PDF_MAX_BYTES = 50 * 1024 * 1024;
+
+/**
+ * POST /api/admin/products/[id]/assets
+ *
+ * Upload (or replace) a book cover in the public `ebook-covers` bucket or the
+ * ebook PDF in the PRIVATE `ebook-files` bucket.
+ *
+ * Storage paths are scoped to the real product id:
+ *   ebook-covers/{productId}.{ext}
+ *   ebook-files/{productId}.pdf
+ *
+ * Upload-then-update ordering: the new file is uploaded first and only after
+ * that succeeds is the products row updated, so we never leave a database
+ * reference pointing at a missing object.
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify admin authentication
-    await requireAdmin();
+    // API-safe admin guard: 401 unauthenticated / 403 non-admin — never a
+    // page redirect (which would otherwise surface as a NEXT_REDIRECT 500).
+    const auth = await requireAdminApi();
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
 
     const { id } = await params;
     const formData = await request.formData();
@@ -23,19 +45,18 @@ export async function POST(
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file type
+    let ext: string;
     if (type === 'cover') {
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
-      if (!allowedTypes.includes(file.type)) {
+      if (!COVER_MIME_TYPES.includes(file.type)) {
         return NextResponse.json(
           { error: 'Invalid file type. Allowed: PNG, JPEG, WebP, SVG' },
           { status: 400 }
         );
       }
-      // 10MB limit for covers
-      if (file.size > 10 * 1024 * 1024) {
+      if (file.size > COVER_MAX_BYTES) {
         return NextResponse.json({ error: 'File too large. Max 10MB' }, { status: 400 });
       }
+      ext = file.type === 'image/svg+xml' ? 'svg' : file.type.split('/')[1];
     } else {
       if (file.type !== 'application/pdf') {
         return NextResponse.json(
@@ -43,32 +64,30 @@ export async function POST(
           { status: 400 }
         );
       }
-      // 50MB limit for PDFs
-      if (file.size > 50 * 1024 * 1024) {
+      if (file.size > PDF_MAX_BYTES) {
         return NextResponse.json({ error: 'File too large. Max 50MB' }, { status: 400 });
       }
+      ext = 'pdf';
     }
 
-    const supabase = await createClient();
+    const serviceClient = await createServiceClient();
 
-    // Get current product to find existing asset path
-    const { data: product, error: productError } = await supabase
+    // Product must exist before any file is written (no orphan uploads).
+    const { data: product, error: productError } = await serviceClient
       .from('products')
-      .select('cover_url, pdf_path, slug')
+      .select('cover_url, pdf_path')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (productError || !product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    // Use service client for storage operations
-    const serviceClient = await createServiceClient();
     const bucket = type === 'cover' ? 'ebook-covers' : 'ebook-files';
-    const ext = file.name.split('.').pop() || (type === 'cover' ? 'png' : 'pdf');
-    const filePath = `${product.slug}.${ext}`;
+    // Path is derived server-side from the real product id — never from the
+    // client-supplied filename, which prevents arbitrary storage paths.
+    const filePath = type === 'cover' ? `${id}.${ext}` : `${id}.pdf`;
 
-    // Upload file
     const buffer = await file.arrayBuffer();
     const { error: uploadError } = await serviceClient.storage
       .from(bucket)
@@ -78,13 +97,16 @@ export async function POST(
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
+      console.error('Asset upload failed:', {
+        op: 'admin.uploadAsset',
+        bucket,
+        message: uploadError.message,
+      });
       return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
     }
 
-    // Get public URL for covers or update pdf_path
+    // Update the product reference only after the upload succeeded.
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
-
     if (type === 'cover') {
       const { data: urlData } = serviceClient.storage
         .from(bucket)
@@ -94,14 +116,17 @@ export async function POST(
       updateData.pdf_path = filePath;
     }
 
-    // Update product record
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceClient
       .from('products')
       .update(updateData)
       .eq('id', id);
 
     if (updateError) {
-      console.error('Update error:', updateError);
+      console.error('Asset DB update failed:', {
+        op: 'admin.uploadAsset.dbUpdate',
+        code: updateError.code,
+        message: updateError.message,
+      });
       return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
     }
 
@@ -112,20 +137,24 @@ export async function POST(
       ...(type === 'cover' ? { cover_url: updateData.cover_url } : { pdf_path: filePath }),
     });
   } catch (error) {
-    console.error('Asset upload error:', error);
-    if (error instanceof Error && error.message.includes('redirect')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    console.error('Asset upload error:', { op: 'admin.uploadAsset', error });
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }
 
+/**
+ * DELETE /api/admin/products/[id]/assets?type=cover|pdf
+ * Removes the stored file and nulls the product reference.
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const auth = await requireAdminApi();
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') as 'cover' | 'pdf';
@@ -134,10 +163,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid asset type' }, { status: 400 });
     }
 
-    const supabase = await createClient();
     const serviceClient = await createServiceClient();
 
-    const { data: product } = await supabase
+    const { data: product } = await serviceClient
       .from('products')
       .select('cover_url, pdf_path')
       .eq('id', id)
@@ -148,11 +176,14 @@ export async function DELETE(
     }
 
     const bucket = type === 'cover' ? 'ebook-covers' : 'ebook-files';
-    const filePath = type === 'cover'
-      ? product.cover_url?.split('/').pop()
-      : product.pdf_path;
+    // Reconstruct the server-side path from the product id (single source of
+    // truth), never from a client-supplied path.
+    const filePath =
+      type === 'cover'
+        ? (product.cover_url?.split('/').pop()?.split('?')[0] ?? null)
+        : product.pdf_path;
 
-    if (filePath) {
+    if (filePath && filePath !== '') {
       await serviceClient.storage.from(bucket).remove([filePath]);
     }
 
@@ -163,11 +194,11 @@ export async function DELETE(
       updateData.pdf_path = null;
     }
 
-    await supabase.from('products').update(updateData).eq('id', id);
+    await serviceClient.from('products').update(updateData).eq('id', id);
 
     return NextResponse.json({ success: true, type });
   } catch (error) {
-    console.error('Asset delete error:', error);
+    console.error('Asset delete error:', { op: 'admin.deleteAsset', error });
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
   }
 }

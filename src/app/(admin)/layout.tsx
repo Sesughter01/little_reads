@@ -1,12 +1,14 @@
 import { requireAdmin } from '@/lib/auth';
-import AdminLayout from './admin/layout';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Server-side admin guard.
- * Verifies the user has admin role before rendering the admin client layout.
- * This is the defense-in-depth layer on top of middleware protection.
+ * Server-side admin guard (defense-in-depth on top of middleware).
+ *
+ * This layout deliberately renders NO chrome of its own: the admin top bar,
+ * sidebar and <main> are provided exactly once by the client layout at
+ * `(admin)/admin/layout.tsx`, which Next.js applies to every `/admin/*` route.
+ * Importing that layout here as well would render the admin chrome twice.
  */
 export default async function AdminGuardLayout({
   children,
@@ -15,5 +17,5 @@ export default async function AdminGuardLayout({
 }) {
   await requireAdmin();
 
-  return <AdminLayout>{children}</AdminLayout>;
+  return <>{children}</>;
 }

@@ -3,6 +3,81 @@ import { redirect } from 'next/navigation';
 import type { Profile } from '@/types';
 
 /**
+ * Result of an API-safe admin authorization check.
+ *
+ * ok:true   → the caller is an authenticated admin (MFA satisfied);
+ *             `userId`/`profile` are available.
+ * ok:false  → the caller must be rejected with the given HTTP status and
+ *             message. 401 = not authenticated, 403 = authenticated but not
+ *             an admin (or MFA verification still outstanding).
+ */
+export type AdminApiAuth =
+  | { ok: true; userId: string; profile: Profile }
+  | { ok: false; status: 401 | 403; error: string };
+
+/**
+ * API-safe admin guard.
+ *
+ * Unlike requireAdmin() (which calls Next.js redirect() for pages and throws
+ * NEXT_REDIRECT when used inside route handlers), this guard NEVER redirects
+ * and NEVER throws for authorization failures. It returns a typed result that
+ * route handlers turn into proper HTTP responses:
+ *
+ *   not authenticated      → 401
+ *   authenticated non-admin → 403
+ *   admin with MFA pending  → 403 (mirrors the page redirect to /admin/mfa/verify)
+ *   admin (MFA satisfied)   → ok:true
+ *
+ * Role is always verified server-side from profiles.role — never from the
+ * browser, localStorage or request body.
+ */
+export async function requireAdminApi(): Promise<AdminApiAuth> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { ok: false, status: 401, error: 'Not authenticated' };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !profile) {
+    return { ok: false, status: 401, error: 'Not authenticated' };
+  }
+
+  if (profile.role !== 'admin') {
+    return { ok: false, status: 403, error: 'Forbidden' };
+  }
+
+  // Enforce TOTP MFA when the admin has enrolled a verified factor: mutations
+  // must not proceed from an aal1 session. Mirrors requireAdmin()'s redirect
+  // to /admin/mfa/verify for pages.
+  try {
+    const { data: assurance } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const currentLevel = assurance?.currentLevel;
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const verifiedTotp = (factors?.all || []).some(
+      (f) => f.factor_type === 'totp' && f.status === 'verified'
+    );
+    if (verifiedTotp && currentLevel !== 'aal2') {
+      return { ok: false, status: 403, error: 'MFA verification required' };
+    }
+  } catch {
+    // MFA not enabled in this Supabase project — allow without MFA.
+  }
+
+  return { ok: true, userId: user.id, profile: profile as Profile };
+}
+/**
  * Require an authenticated user. Redirects to /login if not authenticated.
  * Returns the authenticated user and their profile.
  */

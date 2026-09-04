@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
@@ -34,6 +32,17 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Root layout — global application requirements only (html/body, styles,
+ * toaster). Route-group layouts own the page chrome:
+ *
+ * - (public), (auth), (dashboard)  → StoreShell (public Header/Footer)
+ * - (admin)                        → admin top bar + sidebar only
+ * - (admin-auth)                   → standalone admin login/MFA pages
+ *
+ * This prevents the public storefront navbar/footer from being rendered
+ * inside the admin panel.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,10 +50,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="overflow-x-hidden">
-      <body className="min-h-screen flex flex-col overflow-x-hidden">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+      <body className="min-h-screen overflow-x-hidden">
+        {children}
         <Toaster
           position="bottom-right"
           toastOptions={{
