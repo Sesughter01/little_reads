@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, BookOpen, Download, Shield, Heart, Star, CheckCircle, Search, ShoppingCart, CreditCard, Sprout, Leaf, TreePine } from 'lucide-react';
+import { ArrowRight, BookOpen, Download, Shield, Heart, Star, Search, ShoppingCart, CreditCard, Sprout, Leaf, TreePine } from 'lucide-react';
 import { BookCard } from '@/components/product/book-card';
 import { NewsletterForm } from '@/components/newsletter-form';
 import type { Product, Category } from '@/types';
@@ -50,11 +50,9 @@ const fallbackCategories: Category[] = [
 
 export default async function HomePage() {
   const { products: featuredBooks } = await safeGetProducts({ featured: true, limit: 8 });
-  const { products: bestSellers } = await safeGetProducts({ sort: 'rating', limit: 4 });
   const categories = await safeGetCategories();
 
   const displayFeatured = featuredBooks.length > 0 ? featuredBooks : fallbackBooks;
-  const displayBestSellers = bestSellers.length > 0 ? bestSellers : fallbackBooks.slice(0, 4);
   const displayCategories = categories.length > 0 ? categories : fallbackCategories;
 
   const ageGroups = [

@@ -22,13 +22,6 @@ export function ShopFilters({
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  const ageGroups = [
-    { label: 'All Ages', value: '' },
-    { label: 'Ages 5–6', value: '5-6' },
-    { label: 'Ages 6–8', value: '6-8' },
-    { label: 'Ages 8–10', value: '8-10' },
-  ];
-
   const sortOptions = [
     { label: 'Featured', value: '' },
     { label: 'Newest', value: 'newest' },

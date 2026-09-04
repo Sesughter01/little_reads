@@ -4,7 +4,8 @@ import { createServiceClient } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
-import { Plus, Edit, Eye, BookOpen } from 'lucide-react';
+import { Plus, BookOpen } from 'lucide-react';
+import { ProductActions } from './product-actions';
 
 export default async function AdminProductsPage() {
   await requireAdmin();
@@ -71,15 +72,7 @@ export default async function AdminProductsPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/books/${product.slug}`}
-                          className="p-2 text-gray-400 hover:text-purple-700 hover:bg-purple-50 rounded-xl"
-                          title="View"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </div>
+                      <ProductActions productId={product.id} published={product.published} />
                     </td>
                   </tr>
                 );

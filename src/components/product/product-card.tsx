@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, BookOpen } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { StarRating } from '@/components/ui/star-rating';
 import { formatPrice, getAgeRangeText, truncate } from '@/lib/utils';
 import type { Product } from '@/types';

@@ -15,7 +15,6 @@ export function WishlistButton({ productId, size = 'sm' }: WishlistButtonProps) 
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const supabase = createClient();
 
@@ -42,7 +41,6 @@ export function WishlistButton({ productId, size = 'sm' }: WishlistButtonProps) 
 
     checkWishlist();
   }, [productId]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggleWishlist = async () => {
     if (isLoading) return;

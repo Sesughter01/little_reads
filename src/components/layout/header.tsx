@@ -99,11 +99,13 @@ export function Header() {
     return () => { document.body.style.overflowY = ''; };
   }, [isDrawerOpen, isSearchOpen]);
 
-  // Close drawer on route change
-  useEffect(() => {
+  // Close drawer/search on route change (adjust state during render)
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setIsDrawerOpen(false);
     setIsSearchOpen(false);
-  }, [pathname]);
+  }
 
   // Escape key handler
   const handleEscape = useCallback((e: KeyboardEvent) => {

@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
-import { Lock, ArrowLeft, CreditCard, BookOpen } from 'lucide-react';
+import { Lock, CreditCard, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface CartItem {
@@ -29,8 +28,8 @@ export default function CheckoutPage() {
     email: '',
     phone: '',
   });
-  const router = useRouter();
 
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of cart from localStorage, guarded by `loaded` skeleton */
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('littlereads_cart') || '[]');
     setCart(stored);
@@ -49,6 +48,7 @@ export default function CheckoutPage() {
       }
     });
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
 

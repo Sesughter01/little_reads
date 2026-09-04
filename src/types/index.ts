@@ -203,6 +203,7 @@ export interface DashboardStats {
   monthRevenue: number;
   totalOrders: number;
   paidOrders: number;
+  pendingOrders: number;
   totalCustomers: number;
   totalProducts: number;
   averageOrderValue: number;

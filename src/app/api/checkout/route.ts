@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { initializePaystackTransaction, generateOrderReference, nairaToKobo } from '@/lib/paystack';
+import {
+  initializePaystackTransaction,
+  generateOrderReference,
+  nairaToKobo,
+  isPaystackConfigured,
+} from '@/lib/paystack';
 import { z } from 'zod';
 
 const checkoutSchema = z.object({
@@ -28,6 +33,15 @@ export async function POST(request: NextRequest) {
     }
 
     const { customer_name, customer_email, phone, items, userId } = parsed.data;
+
+    // Controlled failure when Paystack is not configured — never call Paystack
+    // with a placeholder key and then show "Invalid key" to the customer.
+    if (!isPaystackConfigured()) {
+      return NextResponse.json(
+        { error: 'Payment service is not configured correctly.' },
+        { status: 503 }
+      );
+    }
 
     // Use service role client for order creation (bypasses RLS)
     const supabase = await createServiceClient();
@@ -66,7 +80,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Remove duplicates (client may have sent the same product twice)
-    const uniqueProductIds = [...new Set(productIds)];
     const uniqueProducts = publishedProducts.filter(
       (p, index, self) => index === self.findIndex((s) => s.id === p.id)
     );

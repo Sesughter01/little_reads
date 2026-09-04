@@ -19,11 +19,13 @@ export default function CartPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loaded, setLoaded] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of cart from localStorage, guarded by `loaded` skeleton */
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('littlereads_cart') || '[]');
     setCart(stored);
     setLoaded(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const updateCart = (newCart: CartItem[]) => {
     setCart(newCart);

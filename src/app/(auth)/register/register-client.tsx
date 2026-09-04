@@ -21,6 +21,8 @@ export default function RegisterClient() {
 
     const supabase = createClient();
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -29,6 +31,9 @@ export default function RegisterClient() {
           first_name: firstName,
           last_name: lastName,
         },
+        // Verification link returns to our PKCE callback, which redirects to
+        // /login?verified=1 after Supabase confirms the email.
+        emailRedirectTo: `${siteUrl}/auth/callback`,
       },
     });
 
@@ -50,9 +55,11 @@ export default function RegisterClient() {
       router.push(redirectTo);
       router.refresh();
     } else {
-      // Email verification is enabled — show confirmation message
+      // Email verification is enabled — send the user to /verify-email so they
+      // can confirm their address before signing in.
+      sessionStorage.setItem('littlereads_pending_email', email);
       toast.success('Account created! Please check your email to verify your account.');
-      router.push('/login');
+      router.push('/verify-email');
     }
   };
 

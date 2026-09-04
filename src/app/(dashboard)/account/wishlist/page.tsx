@@ -21,11 +21,13 @@ export default function WishlistPage() {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loaded, setLoaded] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of wishlist from localStorage, guarded by `loaded` skeleton */
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('littlereads_wishlist') || '[]');
     setItems(stored);
     setLoaded(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const removeFromWishlist = (id: string) => {
     const newItems = items.filter((item) => item.id !== id);

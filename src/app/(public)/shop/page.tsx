@@ -3,7 +3,7 @@ import { Star, BookOpen, SearchX } from 'lucide-react';
 import { ShopFilters } from '@/components/product/shop-filters';
 import { formatPrice, getAgeRangeText } from '@/lib/utils';
 import { AddToCartButton } from '@/components/cart/add-to-cart-button';
-import type { Product, Category } from '@/types';
+import type { Product } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +34,7 @@ async function safeGetCategories() {
   try {
     const { getCategories } = await import('@/lib/db');
     return await getCategories();
-  } catch (e) {
+  } catch {
     return [];
   }
 }

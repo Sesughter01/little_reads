@@ -22,7 +22,7 @@ async function safeGetReviews(productId: string) {
   try {
     const { getProductReviews } = await import('@/lib/db');
     return await getProductReviews(productId);
-  } catch (e) {
+  } catch {
     return [];
   }
 }
@@ -31,7 +31,7 @@ async function safeGetRelated(productId: string, categoryId: string, ageMin: num
   try {
     const { getRelatedProducts } = await import('@/lib/db');
     return await getRelatedProducts(productId, categoryId, ageMin, ageMax);
-  } catch (e) {
+  } catch {
     return [];
   }
 }

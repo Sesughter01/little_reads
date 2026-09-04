@@ -1,26 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { verifyPaystackTransaction } from '@/lib/paystack';
-import crypto from 'crypto';
+import { verifyPaystackTransaction, verifyWebhookSignature } from '@/lib/paystack';
 
+/**
+ * Paystack webhook.
+ *
+ * Signature verification uses HMAC-SHA512 of the raw request body signed with
+ * PAYSTACK_SECRET_KEY (x-paystack-signature header). Forged signatures are
+ * rejected before any order state is touched.
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
     const signature = request.headers.get('x-paystack-signature');
 
-    // FAIL SECURELY: Reject if webhook secret is not configured
-    if (!process.env.PAYSTACK_WEBHOOK_SECRET) {
-      console.error('CRITICAL: PAYSTACK_WEBHOOK_SECRET not configured. Rejecting webhook.');
+    // FAIL SECURELY: Reject if secret key is not configured
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error('CRITICAL: PAYSTACK_SECRET_KEY not configured. Rejecting webhook.');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
     // Verify webhook signature (mandatory)
-    const hash = crypto
-      .createHmac('sha512', process.env.PAYSTACK_WEBHOOK_SECRET)
-      .update(body)
-      .digest('hex');
-
-    if (hash !== signature) {
+    if (!verifyWebhookSignature(body, signature)) {
       console.error('Invalid webhook signature received');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createServiceClient();
 
     if (event.event === 'charge.success') {
-      const { reference, amount, status, channel, paid_at } = event.data;
+      const { reference, channel, paid_at } = event.data;
 
       // Find the order
       const { data: order, error: orderError } = await supabase
@@ -129,4 +130,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}

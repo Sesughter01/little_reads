@@ -11,6 +11,8 @@ import {
   Users,
   Star,
   Settings,
+  Mail,
+  Megaphone,
   Menu,
   X,
 } from 'lucide-react';
@@ -28,6 +30,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
     { href: '/admin/customers', label: 'Customers', icon: Users },
     { href: '/admin/reviews', label: 'Reviews', icon: Star },
+    { href: '/admin/messages', label: 'Messages', icon: Mail },
+    { href: '/admin/newsletter', label: 'Newsletter', icon: Megaphone },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ];
 
@@ -41,10 +45,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => { document.body.style.overflow = ''; };
   }, [sidebarOpen]);
 
-  // Close sidebar on route change
-  useEffect(() => {
+  // Close sidebar on route change (adjust state during render)
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setSidebarOpen(false);
-  }, [pathname]);
+  }
 
   // Escape key
   const handleEscape = useCallback((e: KeyboardEvent) => {

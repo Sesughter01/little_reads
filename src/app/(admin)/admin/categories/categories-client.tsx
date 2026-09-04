@@ -39,21 +39,21 @@ export function CategoriesClient() {
       return;
     }
 
-    const supabase = createClient();
     const slug = form.slug || slugify(form.name);
 
-    const { error } = await supabase.from('categories').insert({
-      name: form.name.trim(),
-      slug,
-      description: form.description.trim() || null,
+    const res = await fetch('/api/admin/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: form.name.trim(),
+        slug,
+        description: form.description.trim() || null,
+      }),
     });
+    const data = await res.json();
 
-    if (error) {
-      if (error.code === '23505') {
-        toast.error('A category with this name or slug already exists');
-      } else {
-        toast.error('Failed to create category');
-      }
+    if (!res.ok) {
+      toast.error(data.error || 'Failed to create category');
       return;
     }
 
@@ -69,18 +69,19 @@ export function CategoriesClient() {
       return;
     }
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('categories')
-      .update({
+    const res = await fetch(`/api/admin/categories/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         name: form.name.trim(),
         slug: form.slug || slugify(form.name),
         description: form.description.trim() || null,
-      })
-      .eq('id', id);
+      }),
+    });
+    const data = await res.json();
 
-    if (error) {
-      toast.error('Failed to update category');
+    if (!res.ok) {
+      toast.error(data.error || 'Failed to update category');
       return;
     }
 
@@ -93,15 +94,11 @@ export function CategoriesClient() {
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete "${name}"? Products in this category will not be deleted.`)) return;
 
-    const supabase = createClient();
-    const { error } = await supabase.from('categories').delete().eq('id', id);
+    const res = await fetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
+    const data = await res.json();
 
-    if (error) {
-      if (error.code === '23503') {
-        toast.error('Cannot delete: this category is used by products');
-      } else {
-        toast.error('Failed to delete category');
-      }
+    if (!res.ok) {
+      toast.error(data.error || 'Failed to delete category');
       return;
     }
 

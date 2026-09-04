@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Save, Trash2, Upload, Image, FileText, X } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Upload, ImageIcon, FileText, X } from 'lucide-react';
 
 export function EditProductClient({ productId }: { productId: string }) {
   const router = useRouter();
@@ -87,27 +87,34 @@ export function EditProductClient({ productId }: { productId: string }) {
     setIsSaving(true);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.from('products').update({
-        title: form.title,
-        slug: form.slug || form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        author: form.author,
-        short_description: form.short_description,
-        description: form.description,
-        price: parseInt(form.price) || 0,
-        sale_price: form.sale_price ? parseInt(form.sale_price) : null,
-        age_min: parseInt(form.age_min) || 5,
-        age_max: parseInt(form.age_max) || 10,
-        reading_level: form.reading_level,
-        page_count: parseInt(form.page_count) || 12,
-        reading_time: form.reading_time,
-        category_id: form.category_id || null,
-        featured: form.featured,
-        published: form.published,
-        updated_at: new Date().toISOString(),
-      }).eq('id', productId);
+      const res = await fetch(`/api/admin/products/${productId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          slug:
+            form.slug ||
+            form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, ''),
+          author: form.author,
+          short_description: form.short_description,
+          description: form.description,
+          price: parseInt(form.price) || 0,
+          sale_price: form.sale_price ? parseInt(form.sale_price) : null,
+          age_min: parseInt(form.age_min) || 5,
+          age_max: parseInt(form.age_max) || 10,
+          reading_level: form.reading_level,
+          page_count: parseInt(form.page_count) || 12,
+          reading_time: form.reading_time,
+          category_id: form.category_id || null,
+          featured: form.featured,
+          published: form.published,
+        }),
+      });
+      const data = await res.json();
 
-      if (error) throw error;
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update product');
+      }
 
       toast.success('Product updated!');
       router.push('/admin/products');
@@ -349,7 +356,7 @@ export function EditProductClient({ productId }: { productId: string }) {
                 <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Image className="h-8 w-8 text-gray-300" />
+                  <ImageIcon className="h-8 w-8 text-gray-300" />
                 </div>
               )}
             </div>

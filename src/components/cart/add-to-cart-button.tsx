@@ -15,10 +15,12 @@ export function AddToCartButton({
   const [isInCart, setIsInCart] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time check of cart membership in localStorage on mount */
   useEffect(() => {
     const cart = JSON.parse(localStorage.getItem('littlereads_cart') || '[]');
     setIsInCart(cart.some((item: { id: string }) => item.id === product.id));
   }, [product.id]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleAddToCart = async () => {
     setIsLoading(true);

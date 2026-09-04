@@ -100,6 +100,14 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+> **Windows note:** on Windows, run npm scripts from the exact on-disk casing of the
+> project path. If your shell reports the folder as `Desktop` but it is stored as
+> `desktop` (or vice versa), the casing mismatch splits Next.js's internal module
+> registry and the production build crashes deterministically with
+> `Expected workStore to be initialized` (E1068) while prerendering the first static
+> page. `cd` to the path exactly as listed on disk (e.g. `cd /c/Users/User/desktop/...`)
+> before running `npm run build`.
+
 ## Testing
 
 ```bash

@@ -41,26 +41,34 @@ export function NewProductClient() {
     setIsLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.from('products').insert({
-        title: form.title,
-        slug: form.slug || form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        author: form.author,
-        short_description: form.short_description,
-        description: form.description,
-        price: parseInt(form.price) || 0,
-        sale_price: form.sale_price ? parseInt(form.sale_price) : null,
-        age_min: parseInt(form.age_min) || 5,
-        age_max: parseInt(form.age_max) || 10,
-        reading_level: form.reading_level,
-        page_count: parseInt(form.page_count) || 12,
-        reading_time: form.reading_time,
-        category_id: form.category_id || null,
-        featured: form.featured,
-        published: form.published,
+      const res = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          slug:
+            form.slug ||
+            form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, ''),
+          author: form.author,
+          short_description: form.short_description,
+          description: form.description,
+          price: parseInt(form.price) || 0,
+          sale_price: form.sale_price ? parseInt(form.sale_price) : null,
+          age_min: parseInt(form.age_min) || 5,
+          age_max: parseInt(form.age_max) || 10,
+          reading_level: form.reading_level,
+          page_count: parseInt(form.page_count) || 12,
+          reading_time: form.reading_time,
+          category_id: form.category_id || null,
+          featured: form.featured,
+          published: form.published,
+        }),
       });
+      const data = await res.json();
 
-      if (error) throw error;
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create product');
+      }
 
       toast.success('Product created!');
       router.push('/admin/products');

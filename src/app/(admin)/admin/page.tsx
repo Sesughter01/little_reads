@@ -3,7 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 import { formatPrice, formatDate } from '@/lib/utils';
-import { DollarSign, ShoppingBag, Users, Package, TrendingUp, Star } from 'lucide-react';
+import { DollarSign, ShoppingBag, Users, Package, TrendingUp, Star, Clock, FileText, Eye } from 'lucide-react';
 
 export default async function AdminDashboardPage() {
   // Server-side admin authorization
@@ -11,11 +11,18 @@ export default async function AdminDashboardPage() {
 
   const supabase = await createServiceClient();
 
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
   const [
     { count: totalProducts },
     { count: totalOrders },
     { count: totalCustomers },
     { data: paidOrders },
+    { count: pendingOrders },
+    { count: publishedProducts },
+    { count: draftProducts },
+    { data: monthPaidOrders },
     { data: recentOrders },
     { data: recentReviews },
   ] = await Promise.all([
@@ -23,36 +30,45 @@ export default async function AdminDashboardPage() {
     supabase.from('orders').select('*', { count: 'exact', head: true }),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'customer'),
     supabase.from('orders').select('total').eq('status', 'paid'),
+    supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('products').select('*', { count: 'exact', head: true }).eq('published', true),
+    supabase.from('products').select('*', { count: 'exact', head: true }).eq('published', false),
+    supabase.from('orders').select('total').eq('status', 'paid').gte('created_at', monthStart),
     supabase.from('orders').select('*, items:order_items(*)').order('created_at', { ascending: false }).limit(5),
     supabase.from('reviews').select('*, user:profiles(first_name, last_name), product:products(title)').order('created_at', { ascending: false }).limit(5),
   ]);
 
   const totalRevenue = paidOrders?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
+  const monthRevenue = monthPaidOrders?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
   const averageOrderValue = paidOrders && paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0;
 
   const stats = [
     { label: 'Total Revenue', value: formatPrice(totalRevenue), icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Revenue This Month', value: formatPrice(monthRevenue), icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Total Orders', value: totalOrders || 0, icon: ShoppingBag, color: 'text-purple-700', bg: 'bg-purple-50' },
-    { label: 'Customers', value: totalCustomers || 0, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
-    { label: 'Products', value: totalProducts || 0, icon: Package, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Avg Order Value', value: formatPrice(averageOrderValue), icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Pending Orders', value: pendingOrders || 0, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { label: 'Customers', value: totalCustomers || 0, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Paid Orders', value: paidOrders?.length || 0, icon: Star, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+    { label: 'Total Books', value: totalProducts || 0, icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Published', value: publishedProducts || 0, icon: Eye, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Draft', value: draftProducts || 0, icon: FileText, color: 'text-gray-500', bg: 'bg-gray-100' },
+    { label: 'Avg Order Value', value: formatPrice(averageOrderValue), icon: DollarSign, color: 'text-teal-600', bg: 'bg-teal-50' },
   ];
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-8">Dashboard</h1>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat) => (
           <div key={stat.label} className="bg-white rounded-2xl p-6 shadow-sm">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.bg}`}>
                 <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
-              <div>
-                <p className="text-sm text-gray-500">{stat.label}</p>
-                <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+              <div className="min-w-0">
+                <p className="text-sm text-gray-500 truncate">{stat.label}</p>
+                <p className="text-xl font-bold text-gray-900 truncate">{stat.value}</p>
               </div>
             </div>
           </div>
@@ -116,4 +132,4 @@ export default async function AdminDashboardPage() {
       </div>
     </div>
   );
-}
+}

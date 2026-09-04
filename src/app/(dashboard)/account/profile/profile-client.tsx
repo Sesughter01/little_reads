@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { User, Save, Mail, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -15,6 +16,7 @@ interface ProfileData {
 }
 
 export function ProfileClient() {
+  const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -31,8 +33,7 @@ export function ProfileClient() {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!session?.user) {
-          // eslint-disable-next-line no-restricted-properties
-          window.location.href = '/login';
+          router.push('/login');
           return;
         }
 
@@ -56,7 +57,7 @@ export function ProfileClient() {
     };
 
     loadProfile();
-  }, []);
+  }, [router]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

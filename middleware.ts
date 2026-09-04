@@ -38,6 +38,15 @@ export async function middleware(request: NextRequest) {
     if (pathname === '/admin/login') {
       return supabaseResponse;
     }
+    // Allow MFA setup/verification pages while admin authentication is in progress
+    if (pathname.startsWith('/admin/mfa/')) {
+      if (!user) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/admin/login';
+        return NextResponse.redirect(url);
+      }
+      return supabaseResponse;
+    }
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/login';
