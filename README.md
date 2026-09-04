@@ -9,12 +9,14 @@ A production-quality children's ebook ecommerce platform built with Next.js, Sup
 - 20 original children's ebooks with real stories and generated PDFs
 - Unique SVG cover art for each ebook
 - Full ecommerce: browse, cart, checkout, Paystack payment
+- Customer accounts: signup with email verification, password login, numeric email OTP login
 - Customer dashboard: library, orders, reviews, wishlist
-- Admin panel: dashboard, products, orders, customers, reviews
+- Admin panel: dashboard, products, categories, orders, customers, reviews, messages, newsletter, settings
+- Admin authentication with server-side role guard and TOTP MFA (Supabase MFA)
 - Supabase PostgreSQL with Row Level Security
-- Secure ebook downloads with signed URLs
+- Secure ebook downloads with signed URLs from a private storage bucket
 - Responsive design (mobile/desktop)
-- Search, filtering, and sorting
+- Search, category + age filtering, and sorting
 
 ## Requirements
 
@@ -46,10 +48,14 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_xxxxxxxx
 PAYSTACK_SECRET_KEY=sk_test_xxxxxxxx
-PAYSTACK_WEBHOOK_SECRET=your_webhook_secret
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_NAME=LittleReads
 ```
+
+> The Paystack webhook is verified with `PAYSTACK_SECRET_KEY` (HMAC-SHA512 of the
+> raw body against the `x-paystack-signature` header). No separate
+> `PAYSTACK_WEBHOOK_SECRET` is required.
 
 ## Supabase Setup
 
@@ -66,6 +72,23 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
    - `ebook-files` (private)
 
 4. Copy your project URL and keys to `.env.local`
+
+### Required Supabase Dashboard settings (manual, one-time)
+
+These must be configured in the Supabase Dashboard (Authentication settings) —
+the app cannot configure them for you:
+
+- **Confirm email:** Authentication → Providers → Email → enable **Confirm email**
+  (required for the signup → verify-email flow).
+- **Redirect URLs:** Authentication → URL Configuration → add
+  `https://your-domain.com/auth/callback` (and `http://localhost:3000/auth/callback`
+  for local dev) so verification links return to the app.
+- **Numeric OTP emails:** Authentication → Email Templates → **Magic Link** must
+  include `{{ .Token }}` in the body. If it only contains `{{ .ConfirmationURL }}`,
+  OTP login sends a magic-link experience instead of a 6-digit code.
+- **Admin MFA:** Authentication → Multi-factor authentication → enable MFA
+  (TOTP). Without this, the admin panel works with password login only and the
+  MFA setup page reports that MFA is not enabled.
 
 ## Generate Ebooks & Covers
 
@@ -127,9 +150,14 @@ npm start
 ## Paystack Configuration
 
 1. Create a Paystack account at [paystack.com](https://paystack.com)
-2. Get test keys from Settings > API Keys
-3. Set up webhook URL: `https://your-domain.com/api/webhooks/paystack`
-4. Add webhook secret to `PAYSTACK_WEBHOOK_SECRET`
+2. Get **test** keys from Settings > API Keys (`pk_test_...` / `sk_test_...`)
+3. Set the webhook URL to `https://your-domain.com/api/webhooks/paystack`
+4. Paystack signs webhooks with HMAC-SHA512 using your secret key — the app
+   verifies the `x-paystack-signature` header against `PAYSTACK_SECRET_KEY`.
+
+Demo deployments must use TEST keys. If keys are missing or look like
+placeholders, checkout returns a controlled
+"Payment service is not configured correctly." error instead of calling Paystack.
 
 For local testing, use [ngrok](https://ngrok.com) or similar to expose localhost.
 
