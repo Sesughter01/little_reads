@@ -367,21 +367,6 @@ export async function getOrderById(id: string): Promise<Order | null> {
   return data as Order;
 }
 
-export async function updateOrderStatus(
-  orderId: string,
-  status: string,
-  extra?: Record<string, unknown>
-): Promise<boolean> {
-  const supabase = await createServiceClient();
-
-  const { error } = await supabase
-    .from('orders')
-    .update({ status, updated_at: new Date().toISOString(), ...extra })
-    .eq('id', orderId);
-
-  return !error;
-}
-
 export async function getUserOrders(userId: string): Promise<Order[]> {
   const supabase = await createClient();
 

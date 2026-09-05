@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireUser } from '@/lib/auth';
+import { requireUserApi } from '@/lib/auth';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -14,21 +14,30 @@ const AVATAR_BUCKET = 'avatars';
  *
  * Storage:
  *   bucket  avatars   (must exist in Supabase storage — create manually if
- *   not present)
+ *   not present; verified live: only ebook-covers / ebook-files exist)
  *   path    {userId}/{timestamp}.{ext}
  *
- * The bucket should be PUBLIC or use createSignedUrl depending on how you
- * want avatars served. This route stores the object and writes the public
- * URL back to profiles.avatar_url.
+ * The bucket should be PUBLIC (stable public URL stored in profiles.avatar_url)
+ * or use createSignedUrl if kept private.
  *
  * Security:
- *   - requireUser() → only the authenticated profile can update
- *   - path scoped to userId — one user cannot overwrite another's avatar
- *   - MIME + size validated server-side
+ *   - requireUserApi() → API-safe guard; NEVER redirects from a route handler.
+ *     401 JSON for anonymous callers (the page-level requireUser() throws
+ *     NEXT_REDIRECT inside API routes, which catch blocks turn into 500s).
+ *   - Authenticated user ID always comes from the Supabase server session —
+ *     never from the request body or a client-supplied userId.
+ *   - Storage path is scoped to the session userId — one customer can never
+ *     overwrite another customer's avatar.
+ *   - MIME + size validated server-side.
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId, profile } = await requireUser();
+    const auth = await requireUserApi();
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+    const userId = auth.userId;
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 
@@ -52,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     const serviceClient = await createServiceClient();
 
-    // Storage path scoped to this user — safe: uses the real userId.
+    // Storage path scoped to this user — safe: uses the real session userId.
     const ext = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
     const fileName = `${Date.now()}.${ext}`;
     const filePath = `${userId}/${fileName}`;
@@ -65,12 +74,22 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
+      const missingBucket =
+        Number(uploadError.statusCode) === 404 ||
+        /not found|does not exist/i.test(uploadError.message || '');
       console.error('Avatar upload error:', {
         op: 'profile.avatar.upload',
         userId: userId.slice(0, 8),
-        message: uploadError.message,
+        code: missingBucket ? 'BUCKET_NOT_FOUND' : uploadError.statusCode ?? 'STORAGE_ERROR',
       });
-      return NextResponse.json({ error: 'Avatar upload failed' }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: missingBucket
+            ? 'Avatar storage is not configured yet. Create the "avatars" bucket in Supabase Storage (public, images only) and try again.'
+            : 'Avatar upload failed',
+        },
+        { status: 500 }
+      );
     }
 
     // Public URL — adjust if your avatar bucket is private (use createSignedUrl).

@@ -77,6 +77,53 @@ export async function requireAdminApi(): Promise<AdminApiAuth> {
 
   return { ok: true, userId: user.id, profile: profile as Profile };
 }
+
+/**
+ * Result of an API-safe customer authorization check.
+ *
+ * ok:true   → the caller is an authenticated user; `userId`/`profile` are
+ *             available from the SERVER session — never from the browser.
+ * ok:false  → reject with 401 (not authenticated).
+ */
+export type UserApiAuth =
+  | { ok: true; userId: string; profile: Profile }
+  | { ok: false; status: 401; error: string };
+
+/**
+ * API-safe customer guard.
+ *
+ * Like requireAdminApi(), this NEVER calls Next.js redirect() and NEVER throws
+ * for authentication failures — it returns a typed 401 result so route
+ * handlers can respond with proper JSON instead of letting NEXT_REDIRECT be
+ * swallowed by a catch block and turned into a 500.
+ *
+ * The authenticated user ID always comes from the Supabase server session.
+ */
+export async function requireUserApi(): Promise<UserApiAuth> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { ok: false, status: 401, error: 'Not authenticated' };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !profile) {
+    return { ok: false, status: 401, error: 'Not authenticated' };
+  }
+
+  return { ok: true, userId: user.id, profile: profile as Profile };
+}
+
 /**
  * Require an authenticated user. Redirects to /login if not authenticated.
  * Returns the authenticated user and their profile.

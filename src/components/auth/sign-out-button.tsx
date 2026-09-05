@@ -2,7 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';interface SignOutButtonProps {
+import { createClient } from '@/lib/supabase/client';
+import { resolveSignOutDestination } from '@/lib/sign-out';
+
+interface SignOutButtonProps {
   /** Visual variant */
   variant?: 'sidebar' | 'inline';
   /** Optional label override */
@@ -12,7 +15,7 @@ import { createClient } from '@/lib/supabase/client';interface SignOutButtonProp
 }
 export function SignOutButton({ variant = 'sidebar', label = 'Sign Out', redirectTo }: SignOutButtonProps) {
   const router = useRouter();
-  const destination = redirectTo ?? '/';
+  const destination = resolveSignOutDestination(redirectTo);
 
   const handleSignOut = async () => {
     const supabase = createClient();

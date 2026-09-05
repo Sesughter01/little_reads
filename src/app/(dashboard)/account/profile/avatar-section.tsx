@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -18,7 +18,8 @@ function initialsAvatar(first_name: string, last_name: string) {
 
 export function AvatarSection({ userId, profile }: { userId: string; profile: { avatar_url: string | null; first_name: string; last_name: string } }) {
   const [uploading, setUploading] = useState(false);
-  const inputRef = useState<HTMLInputElement | null>(null).slice(-1)[0] as unknown as React.MutableRefObject<HTMLInputElement | null>;
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.avatar_url);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -47,9 +48,10 @@ export function AvatarSection({ userId, profile }: { userId: string; profile: { 
       });
       const data = await res.json();
 
-      if (res.ok && data.success) {
+      if (res.ok && data.success && data.avatar_url) {
+        // Show the new avatar immediately — keep the old one on failure.
+        setAvatarUrl(data.avatar_url);
         toast.success('Profile photo updated.');
-        window.location.reload();
       } else {
         toast.error(data.error || 'Could not update photo.');
       }
@@ -61,12 +63,20 @@ export function AvatarSection({ userId, profile }: { userId: string; profile: { 
     }
   }
 
+  function handleKeyDown(e: React.KeyboardEvent) {
+    // Make the camera control keyboard accessible (Enter / Space open the picker).
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      inputRef.current?.click();
+    }
+  }
+
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-6 border-b border-gray-100">
       <div className="relative inline-block">
-        {profile.avatar_url ? (
+        {avatarUrl ? (
           <img
-            src={profile.avatar_url}
+            src={avatarUrl}
             alt={`${profile.first_name} ${profile.last_name}`}
             className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
           />
@@ -76,8 +86,11 @@ export function AvatarSection({ userId, profile }: { userId: string; profile: { 
         {/* Camera/edit icon overlay — keyboard accessible */}
         <label
           htmlFor={`avatar-upload-${userId}`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
           className={`absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full border border-gray-200 flex items-center justify-center shadow cursor-pointer transition-colors
-            ${uploading ? 'opacity-50 pointer-events-none' : 'hover:bg-gray-50'}
+            ${uploading ? 'opacity-50 pointer-events-none' : 'hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-brand-purple'}
           `}
           title="Update profile photo"
           aria-label="Update profile photo"
@@ -85,10 +98,10 @@ export function AvatarSection({ userId, profile }: { userId: string; profile: { 
           <Camera className="h-4 w-4 text-gray-500" />
           <input
             id={`avatar-upload-${userId}`}
-            ref={(node) => { (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = node; }}
+            ref={inputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            className="hidden"
+            className="sr-only"
             onChange={handleFileChange}
             disabled={uploading}
             aria-label="Upload profile photo"
@@ -100,12 +113,7 @@ export function AvatarSection({ userId, profile }: { userId: string; profile: { 
           <span className="font-medium text-gray-700">Click the camera icon</span> to
           update your profile photo.
         </p>
-        {profile.avatar_url && (
-          <p className="mt-1 truncate max-w-[240px]">
-            <span className="text-gray-500">Photo: </span>
-            <span className="text-gray-400 break-all">{profile.avatar_url}</span>
-          </p>
-        )}
+        <p className="mt-1">JPEG, PNG, or WebP — max 5 MB.</p>
       </div>
     </div>
   );

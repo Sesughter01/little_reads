@@ -3,7 +3,9 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 
 const newsletterSchema = z.object({
-  email: z.string().email(),
+  // trim() runs before email() validation so padded addresses like
+  // "  reader@test.com  " are normalized, not rejected.
+  email: z.string().trim().email(),
 });
 
 export async function POST(request: NextRequest) {
