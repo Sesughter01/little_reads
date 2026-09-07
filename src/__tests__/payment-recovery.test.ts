@@ -72,12 +72,14 @@ describe('Callback origin construction', () => {
   });
 
   it('never lets a foreign host steer the callback (falls back to configured site URL)', () => {
+    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', ''); // hermetic: ignore .env.local pinning
     vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://little-reads.vercel.app');
     const origin = resolveCallbackOrigin(fakeRequest('evil.example.com'));
     expect(origin).toBe('https://little-reads.vercel.app');
   });
 
   it('falls back to localhost when host is foreign and no site URL is configured', () => {
+    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', ''); // hermetic: ignore .env.local pinning
     const origin = resolveCallbackOrigin(fakeRequest('evil.example.com'));
     expect(origin).toBe('http://localhost:3000');
   });
@@ -86,6 +88,35 @@ describe('Callback origin construction', () => {
     expect(isAllowedCallbackHost('evil.example.com')).toBe(false);
     expect(isAllowedCallbackHost('notvercel.app.evil.com')).toBe(false);
     expect(isAllowedCallbackHost(null)).toBe(false);
+  });
+
+  it('allows hosts pinned in ALLOWED_CALLBACK_HOSTS (custom production domain)', () => {
+    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', 'littlereads.com.ng,www.littlereads.com.ng');
+    expect(isAllowedCallbackHost('littlereads.com.ng')).toBe(true);
+    expect(isAllowedCallbackHost('www.littlereads.com.ng')).toBe(true);
+    expect(isAllowedCallbackHost('evil.example.com')).toBe(false);
+  });
+
+  it('derives the callback origin from a pinned custom domain request host', () => {
+    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', 'littlereads.com.ng,www.littlereads.com.ng');
+    const origin = resolveCallbackOrigin(fakeRequest('www.littlereads.com.ng'));
+    expect(origin).toBe('https://www.littlereads.com.ng');
+  });
+
+  it('prefers the pinned allow-list host over a stale NEXT_PUBLIC_SITE_URL as fallback', () => {
+    // NEXT_PUBLIC_SITE_URL pointed at a foreign domain (the real failure
+    // mode: customers were sent back to the wrong site after paying). The
+    // pinned allow-list must win so the callback stays on the app.
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://upskiiltech.com');
+    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', 'littlereads.com.ng,www.littlereads.com.ng');
+    const origin = resolveCallbackOrigin(fakeRequest('some-unknown-host.example.com'));
+    expect(origin).toBe('https://littlereads.com.ng');
+  });
+
+  it('falls back to NEXT_PUBLIC_SITE_URL when no allow-list hosts are pinned', () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://littlereads.com.ng');
+    const origin = resolveCallbackOrigin(fakeRequest('evil.example.com'));
+    expect(origin).toBe('https://littlereads.com.ng');
   });
 
   it('builds the full success-page callback URL with the reference', () => {
