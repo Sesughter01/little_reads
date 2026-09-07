@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import {
   LayoutDashboard,
@@ -10,17 +10,13 @@ import {
   Star,
   Heart,
   User,
-  LogOut,
-  ChevronDown,
   Menu,
   X,
-  BookOpen,
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { SignOutButton } from '@/components/auth/sign-out-button';
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
@@ -34,12 +30,6 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
 
   const currentLabel = navItems.find((item) => item.href === pathname)?.label || 'My Account';
   const CurrentIcon = navItems.find((item) => item.href === pathname)?.icon || LayoutDashboard;
-
-  const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/');
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
@@ -67,13 +57,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
               );
             })}
             <hr className="my-2 border-gray-100" />
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 w-full text-left transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </button>
+            <SignOutButton variant="inline" />
           </nav>
         </aside>
 
@@ -115,13 +99,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                   );
                 })}
                 <hr className="my-1 border-gray-100" />
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 w-full text-left transition-colors"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
-                </button>
+                <SignOutButton variant="inline" />
               </nav>
             </div>
           )}

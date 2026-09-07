@@ -26,6 +26,33 @@ export async function createClient() {
   );
 }
 
+/**
+ * Public anonymous server-side Supabase client.
+ *
+ * Used ONLY for read-only, publicly published content (products, categories,
+ * approved reviews, etc.). It never touches request cookies, so routes that
+ * only read public data can be statically rendered or served without
+ * triggering Next.js DYNAMIC_SERVER_USAGE errors.
+ *
+ * The anonymous key is used (never the service-role key), and RLS policies
+ * such as "Published products are viewable by everyone" grant read access to
+ * anonymous users.
+ */
+export async function createPublicClient() {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return [];
+        },
+        setAll() {},
+      },
+    }
+  );
+}
+
 export async function createServiceClient() {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,4 +66,4 @@ export async function createServiceClient() {
       },
     }
   );
-}
+}

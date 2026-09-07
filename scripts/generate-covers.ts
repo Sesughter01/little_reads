@@ -268,12 +268,6 @@ function generateCoverSVG(config: CoverConfig): string {
 </svg>`;
 }
 
-function svgToSimplePNG(svg: string): Buffer {
-  // Since we can't use sharp in this environment, we'll save as SVG
-  // and provide a conversion note
-  return Buffer.from(svg, 'utf-8');
-}
-
 async function generateAllCovers() {
   fs.mkdirSync(COVERS_DIR, { recursive: true });
 

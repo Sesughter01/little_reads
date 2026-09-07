@@ -34,10 +34,22 @@ export async function middleware(request: NextRequest) {
 
   // Admin routes: require authenticated user with admin role
   if (pathname.startsWith('/admin')) {
+    // Allow the admin login page itself
+    if (pathname === '/admin/login') {
+      return supabaseResponse;
+    }
+    // Allow MFA setup/verification pages while admin authentication is in progress
+    if (pathname.startsWith('/admin/mfa/')) {
+      if (!user) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/admin/login';
+        return NextResponse.redirect(url);
+      }
+      return supabaseResponse;
+    }
     if (!user) {
       const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      url.searchParams.set('redirect', pathname);
+      url.pathname = '/admin/login';
       return NextResponse.redirect(url);
     }
 
@@ -68,7 +80,10 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
-      url.searchParams.set('redirect', '/checkout');
+      // Preserve the full intended destination (including ?ref=...) so the
+      // payment return page can reconcile the order after sign-in.
+      const redirectTo = `${pathname}${request.nextUrl.search}`;
+      url.searchParams.set('redirect', redirectTo);
       return NextResponse.redirect(url);
     }
   }

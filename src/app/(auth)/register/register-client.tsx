@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { BookOpen, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export function RegisterClient() {
+export default function RegisterClient() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -21,6 +21,8 @@ export function RegisterClient() {
 
     const supabase = createClient();
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -29,6 +31,9 @@ export function RegisterClient() {
           first_name: firstName,
           last_name: lastName,
         },
+        // Verification link returns to our PKCE callback, which redirects to
+        // /login?verified=1 after Supabase confirms the email.
+        emailRedirectTo: `${siteUrl}/auth/callback`,
       },
     });
 
@@ -38,22 +43,24 @@ export function RegisterClient() {
       return;
     }
 
-    // Create profile
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        first_name: firstName,
-        last_name: lastName,
-        email,
-        role: 'customer',
-      });
-    }
+    // Profile is auto-created by the handle_new_user() trigger.
+    // The trigger reads first_name/last_name from raw_user_meta_data
+    // which we pass via options.data above.
 
-    toast.success('Account created! Welcome to LittleReads.');
-    const searchParams = new URLSearchParams(window.location.search);
-    const redirect = searchParams.get('redirect') || '/account';
-    router.push(redirect);
-    router.refresh();
+    // If Supabase returns a session, email verification is disabled — sign in immediately
+    if (data.session) {
+      toast.success('Account created! Welcome to LittleReads.');
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = params.get('redirect') || '/account';
+      router.push(redirectTo);
+      router.refresh();
+    } else {
+      // Email verification is enabled — send the user to /verify-email so they
+      // can confirm their address before signing in.
+      sessionStorage.setItem('littlereads_pending_email', email);
+      toast.success('Account created! Please check your email to verify your account.');
+      router.push('/verify-email');
+    }
   };
 
   return (

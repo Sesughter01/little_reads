@@ -70,12 +70,27 @@ describe('Webhook Security', () => {
     expect(paystackAmount).not.toBe(expectedAmount);
   });
 
-  it('should be idempotent for duplicate webhooks', () => {
-    const order = { status: 'paid' };
+  it('should repair purchases even when the order is already paid', () => {
+    // An order can reach status=paid while purchase creation later fails.
+    // Fulfillment must NOT short-circuit on paid alone — a retry should
+    // create any missing purchases.
+    const order = { status: 'paid', user_id: 'u1' };
+    const orderItems = [{ product_id: 'p1' }, { product_id: 'p2' }];
+    const existingPurchases = [{ user_id: 'u1', product_id: 'p1' }];
 
-    // If already paid, should skip
-    const shouldProcess = order.status !== 'paid';
-    expect(shouldProcess).toBe(false);
+    const missing = orderItems.filter(
+      (item) =>
+        !existingPurchases.some((p) => p.product_id === item.product_id)
+    );
+
+    // p1 exists, p2 is missing → fulfillment should repair p2.
+    expect(missing).toHaveLength(1);
+    expect(missing[0].product_id).toBe('p2');
+    // Never duplicate an existing purchase.
+    const toCreate = missing.filter(
+      (item) => !existingPurchases.some((p) => p.product_id === item.product_id)
+    );
+    expect(toCreate).toHaveLength(1);
   });
 });
 

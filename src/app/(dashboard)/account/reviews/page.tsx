@@ -1,5 +1,7 @@
 import { requireUser } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
 import { Star } from 'lucide-react';
 
 export default async function ReviewsPage() {

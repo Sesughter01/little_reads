@@ -127,7 +127,6 @@ describe('Webhook Security', () => {
 
   it('should reject forged HMAC signature', () => {
     // Real signature would be HMAC-SHA512 of body using PAYSTACK_SECRET_KEY
-    const body = '{"event":"charge.success","data":{"reference":"LR-TEST"}}';
     const realSignature = 'abcdef1234567890'; // Would be computed HMAC
     const forgedSignature = '0000000000000000';
 

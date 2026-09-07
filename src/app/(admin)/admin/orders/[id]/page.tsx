@@ -1,9 +1,13 @@
 import { requireAdmin } from '@/lib/auth';
 import { createServiceClient } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
 import { formatPrice, formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import { OrderStatusBadge } from './order-status-badge';
+import { VerifyPaymentButton } from './verify-payment-button';
 
 export default async function AdminOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
@@ -24,17 +28,24 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
         <ArrowLeft className="h-4 w-4" /> Back to Orders
       </Link>
 
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <h1 className="text-2xl font-bold text-gray-900">
           Order #{order.paystack_reference || id.slice(0, 8)}
         </h1>
-        <span className={`badge ${
-          order.status === 'paid' ? 'bg-green-100 text-green-700' :
-          order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-          'bg-red-100 text-red-700'
-        }`}>
-          {order.status}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className={`badge ${
+            order.status === 'paid' ? 'bg-green-100 text-green-700' :
+            order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+            order.status === 'failed' ? 'bg-red-100 text-red-700' :
+            'bg-gray-100 text-gray-700'
+          }`}>
+            {order.status}
+          </span>
+          <OrderStatusBadge status={order.status} />
+          {order.paystack_reference && order.status !== 'paid' && (
+            <VerifyPaymentButton orderId={order.id} />
+          )}
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

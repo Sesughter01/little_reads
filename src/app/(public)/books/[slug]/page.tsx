@@ -6,6 +6,8 @@ import { AddToCartButton } from '@/components/cart/add-to-cart-button';
 import { BuyNowButton } from '@/components/checkout/buy-now-button';
 import type { Metadata } from 'next';
 
+export const dynamic = 'force-dynamic';
+
 async function safeGetProduct(slug: string) {
   try {
     const { getProductBySlug } = await import('@/lib/db');
@@ -20,7 +22,7 @@ async function safeGetReviews(productId: string) {
   try {
     const { getProductReviews } = await import('@/lib/db');
     return await getProductReviews(productId);
-  } catch (e) {
+  } catch {
     return [];
   }
 }
@@ -29,7 +31,7 @@ async function safeGetRelated(productId: string, categoryId: string, ageMin: num
   try {
     const { getRelatedProducts } = await import('@/lib/db');
     return await getRelatedProducts(productId, categoryId, ageMin, ageMax);
-  } catch (e) {
+  } catch {
     return [];
   }
 }

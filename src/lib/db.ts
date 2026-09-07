@@ -1,16 +1,17 @@
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import {
+  createClient,
+  createPublicClient,
+  createServiceClient,
+} from '@/lib/supabase/server';
 import type {
   Product,
   ProductWithDetails,
   Category,
   Order,
-  OrderItem,
   Purchase,
   Review,
   Profile,
-  CartItem,
   DashboardStats,
-  SalesData,
   Wishlist,
 } from '@/types';
 
@@ -29,13 +30,9 @@ export async function getProducts(params?: {
   page?: number;
   limit?: number;
 }): Promise<{ products: Product[]; total: number }> {
-  let supabase;
-  try {
-    supabase = await createClient();
-  } catch (e) {
-    console.error('Failed to create Supabase client:', e);
-    return { products: [], total: 0 };
-  }
+  // Public catalog reads use the anonymous cookie-less client — no request
+  // cookies required, so /shop and / can render without dynamic server usage.
+  const supabase = await createPublicClient();
 
   let query = supabase
     .from('products')
@@ -50,15 +47,30 @@ export async function getProducts(params?: {
   }
 
   if (params?.category) {
-    query = query.eq('category:categories.slug', params.category);
+    const { data: cat, error: catErr } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', params.category)
+      .maybeSingle();
+
+    if (catErr) {
+      console.error('Category lookup failed:', catErr.message, catErr.code);
+      return { products: [], total: 0 };
+    }
+
+    if (cat) {
+      query = query.eq('category_id', cat.id);
+    } else {
+      return { products: [], total: 0 };
+    }
   }
 
   if (params?.age_min) {
-    query = query.lte('age_min', params.age_min);
+    query = query.gte('age_max', params.age_min);
   }
 
   if (params?.age_max) {
-    query = query.gte('age_max', params.age_max);
+    query = query.lte('age_min', params.age_max);
   }
 
   if (params?.min_price) {
@@ -145,7 +157,7 @@ export async function getProducts(params?: {
 export async function getProductBySlug(
   slug: string
 ): Promise<ProductWithDetails | null> {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
 
   const { data, error } = await supabase
     .from('products')
@@ -198,13 +210,7 @@ export async function getProductById(id: string): Promise<Product | null> {
 
 // Categories
 export async function getCategories(): Promise<Category[]> {
-  let supabase;
-  try {
-    supabase = await createClient();
-  } catch (e) {
-    console.error('Failed to create Supabase client:', e);
-    return [];
-  }
+  const supabase = await createPublicClient();
 
   const { data, error } = await supabase
     .from('categories')
@@ -217,7 +223,7 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
 
   const { data, error } = await supabase
     .from('categories')
@@ -238,13 +244,7 @@ export async function getRelatedProducts(
   ageMax: number,
   limit = 4
 ): Promise<Product[]> {
-  let supabase;
-  try {
-    supabase = await createClient();
-  } catch (e) {
-    console.error('Failed to create Supabase client:', e);
-    return [];
-  }
+  const supabase = await createPublicClient();
 
   const { data, error } = await supabase
     .from('products')
@@ -367,21 +367,6 @@ export async function getOrderById(id: string): Promise<Order | null> {
   return data as Order;
 }
 
-export async function updateOrderStatus(
-  orderId: string,
-  status: string,
-  extra?: Record<string, unknown>
-): Promise<boolean> {
-  const supabase = await createServiceClient();
-
-  const { error } = await supabase
-    .from('orders')
-    .update({ status, updated_at: new Date().toISOString(), ...extra })
-    .eq('id', orderId);
-
-  return !error;
-}
-
 export async function getUserOrders(userId: string): Promise<Order[]> {
   const supabase = await createClient();
 
@@ -466,13 +451,7 @@ export async function hasUserPurchased(
 export async function getProductReviews(
   productId: string
 ): Promise<Review[]> {
-  let supabase;
-  try {
-    supabase = await createClient();
-  } catch (e) {
-    console.error('Failed to create Supabase client:', e);
-    return [];
-  }
+  const supabase = await createPublicClient();
 
   const { data, error } = await supabase
     .from('reviews')
@@ -504,7 +483,7 @@ export async function getUserReviews(userId: string): Promise<Review[]> {
 export async function getCartProducts(productIds: string[]): Promise<Product[]> {
   if (productIds.length === 0) return [];
 
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
 
   const { data, error } = await supabase
     .from('products')
@@ -549,24 +528,39 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const supabase = await createServiceClient();
 
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const monthStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1
+  ).toISOString();
 
-  const [ordersResult, productsResult, customersResult, paidOrdersResult] =
-    await Promise.all([
-      supabase.from('orders').select('total', { count: 'exact' }),
-      supabase.from('products').select('id', { count: 'exact' }),
-      supabase.from('profiles').select('id', { count: 'exact' }).eq('role', 'customer'),
-      supabase.from('orders').select('total').eq('status', 'paid'),
-    ]);
+  const [
+    ordersResult,
+    productsResult,
+    customersResult,
+    paidOrdersResult,
+    monthOrdersResult,
+    pendingOrdersResult,
+  ] = await Promise.all([
+    supabase.from('orders').select('total', { count: 'exact' }),
+    supabase.from('products').select('id', { count: 'exact' }),
+    supabase
+      .from('profiles')
+      .select('id', { count: 'exact' })
+      .eq('role', 'customer'),
+    supabase.from('orders').select('total').eq('status', 'paid'),
+    supabase
+      .from('orders')
+      .select('total')
+      .eq('status', 'paid')
+      .gte('created_at', monthStart),
+    supabase.from('orders').select('id', { count: 'exact' }).eq('status', 'pending'),
+  ]);
 
   const totalRevenue =
     paidOrdersResult.data?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
-
-  const monthOrders =
-    paidOrdersResult.data?.filter((o) => {
-      // We need created_at for this but the basic version works
-      return true;
-    }) || [];
+  const monthRevenue =
+    monthOrdersResult.data?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
 
   const totalOrders = ordersResult.count || 0;
   const paidOrders =
@@ -574,11 +568,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   return {
     totalRevenue,
-    monthRevenue: totalRevenue, // Simplified - in production, filter by month
+    monthRevenue,
     totalOrders,
     paidOrders,
     totalCustomers: customersResult.count || 0,
     totalProducts: productsResult.count || 0,
+    pendingOrders: pendingOrdersResult.count || 0,
     averageOrderValue: paidOrders > 0 ? totalRevenue / paidOrders : 0,
   };
 }

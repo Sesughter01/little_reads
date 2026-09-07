@@ -9,12 +9,14 @@ A production-quality children's ebook ecommerce platform built with Next.js, Sup
 - 20 original children's ebooks with real stories and generated PDFs
 - Unique SVG cover art for each ebook
 - Full ecommerce: browse, cart, checkout, Paystack payment
+- Customer accounts: signup with email verification, password login, numeric email OTP login
 - Customer dashboard: library, orders, reviews, wishlist
-- Admin panel: dashboard, products, orders, customers, reviews
+- Admin panel: dashboard, products, categories, orders, customers, reviews, messages, newsletter, settings
+- Admin authentication with server-side role guard and TOTP MFA (Supabase MFA)
 - Supabase PostgreSQL with Row Level Security
-- Secure ebook downloads with signed URLs
+- Secure ebook downloads with signed URLs from a private storage bucket
 - Responsive design (mobile/desktop)
-- Search, filtering, and sorting
+- Search, category + age filtering, and sorting
 
 ## Requirements
 
@@ -46,10 +48,25 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_xxxxxxxx
 PAYSTACK_SECRET_KEY=sk_test_xxxxxxxx
-PAYSTACK_WEBHOOK_SECRET=your_webhook_secret
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_NAME=LittleReads
+
+# Production payment return domains (comma-separated). Pin the exact domains
+# the Paystack callback may land on. If set, these are ALSO preferred over
+# NEXT_PUBLIC_SITE_URL as the fallback, so a stale NEXT_PUBLIC_SITE_URL can
+# never send customers back to the wrong site after paying.
+# Example: ALLOWED_CALLBACK_HOSTS=littlereads.com.ng,www.littlereads.com.ng
+# ALLOWED_CALLBACK_HOSTS=
+
+# Secret protecting the /api/cron/reconcile-pending fulfillment sweep
+# (Vercel Cron sends it as `Authorization: Bearer <CRON_SECRET>`).
+# CRON_SECRET=generate-a-long-random-string
 ```
+
+> The Paystack webhook is verified with `PAYSTACK_SECRET_KEY` (HMAC-SHA512 of the
+> raw body against the `x-paystack-signature` header). No separate
+> `PAYSTACK_WEBHOOK_SECRET` is required.
 
 ## Supabase Setup
 
@@ -66,6 +83,23 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
    - `ebook-files` (private)
 
 4. Copy your project URL and keys to `.env.local`
+
+### Required Supabase Dashboard settings (manual, one-time)
+
+These must be configured in the Supabase Dashboard (Authentication settings) —
+the app cannot configure them for you:
+
+- **Confirm email:** Authentication → Providers → Email → enable **Confirm email**
+  (required for the signup → verify-email flow).
+- **Redirect URLs:** Authentication → URL Configuration → add
+  `https://your-domain.com/auth/callback` (and `http://localhost:3000/auth/callback`
+  for local dev) so verification links return to the app.
+- **Numeric OTP emails:** Authentication → Email Templates → **Magic Link** must
+  include `{{ .Token }}` in the body. If it only contains `{{ .ConfirmationURL }}`,
+  OTP login sends a magic-link experience instead of a 6-digit code.
+- **Admin MFA:** Authentication → Multi-factor authentication → enable MFA
+  (TOTP). Without this, the admin panel works with password login only and the
+  MFA setup page reports that MFA is not enabled.
 
 ## Generate Ebooks & Covers
 
@@ -100,6 +134,14 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+> **Windows note:** on Windows, run npm scripts from the exact on-disk casing of the
+> project path. If your shell reports the folder as `Desktop` but it is stored as
+> `desktop` (or vice versa), the casing mismatch splits Next.js's internal module
+> registry and the production build crashes deterministically with
+> `Expected workStore to be initialized` (E1068) while prerendering the first static
+> page. `cd` to the path exactly as listed on disk (e.g. `cd /c/Users/User/desktop/...`)
+> before running `npm run build`.
+
 ## Testing
 
 ```bash
@@ -119,11 +161,56 @@ npm start
 ## Paystack Configuration
 
 1. Create a Paystack account at [paystack.com](https://paystack.com)
-2. Get test keys from Settings > API Keys
-3. Set up webhook URL: `https://your-domain.com/api/webhooks/paystack`
-4. Add webhook secret to `PAYSTACK_WEBHOOK_SECRET`
+2. Get **test** keys from Settings > API Keys (`pk_test_...` / `sk_test_...`)
+3. Set the webhook URL to `https://your-domain.com/api/webhooks/paystack`
+4. Paystack signs webhooks with HMAC-SHA512 using your secret key — the app
+   verifies the `x-paystack-signature` header against `PAYSTACK_SECRET_KEY`.
+
+Demo deployments must use TEST keys. If keys are missing or look like
+placeholders, checkout returns a controlled
+"Payment service is not configured correctly." error instead of calling Paystack.
+
+> **Critical:** the webhook URL in the Paystack dashboard must be
+> `https://littlereads.com.ng/api/webhooks/paystack` (the actual deployment
+> domain — never a foreign/parked domain). A misconfigured webhook URL is the
+> number-one cause of "customer paid but order stayed pending": the
+> `charge.success` event never reaches the app.
 
 For local testing, use [ngrok](https://ngrok.com) or similar to expose localhost.
+
+## Payment Recovery & the Fulfillment Sweep
+
+A customer pays → Paystack sends a receipt and fires `charge.success`. The app
+fulfills the order through three independent paths:
+
+1. **Webhook** — Paystack posts `charge.success` to
+   `/api/webhooks/paystack` (HMAC-verified).
+2. **Return reconcile** — the customer is redirected back to
+   `/checkout/success?ref=…`, which re-verifies server-side. This only works
+   if the callback lands on the app (see `ALLOWED_CALLBACK_HOSTS` above).
+3. **Fulfillment sweep** — `/api/cron/reconcile-pending` runs on a schedule
+   (see `vercel.json`), finds every `pending` order that carries a Paystack
+   reference, verifies each transaction directly with Paystack, and fulfills
+   any that actually succeeded.
+
+The sweep is the safety net: even if the webhook never reaches the app AND the
+callback lands on the wrong domain, every paid order is still fulfilled within
+one cron interval. It funnels into the same idempotent `fulfillPaidOrder`
+helper as the other two paths, so repeated runs never duplicate purchases.
+
+**Setup:**
+
+1. Add `CRON_SECRET` (long random string) to your Vercel environment variables
+   — Vercel Cron sends it as `Authorization: Bearer <CRON_SECRET>`, which the
+   route requires.
+2. `vercel.json` schedules the sweep every 10 minutes. Note: cron frequency
+   depends on your Vercel plan (Hobby runs crons once per day; Pro allows
+   more frequent schedules).
+3. Manual/local run:
+   ```bash
+   set -a; source .env.local; set +a
+   npx tsx scripts/reconcile-pending-orders.ts
+   ```
 
 ## Vercel Deployment
 

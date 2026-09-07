@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import {
   LayoutDashboard,
@@ -11,16 +11,18 @@ import {
   Users,
   Star,
   Settings,
+  Mail,
+  Megaphone,
   Menu,
   X,
-  LogOut,
+  Search,
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { AdminSearch } from './admin-search';
 import { LittleReadsIcon } from '@/components/brand/littlereads-icon';
+import { SignOutButton } from '@/components/auth/sign-out-button';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navItems = [
@@ -30,6 +32,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
     { href: '/admin/customers', label: 'Customers', icon: Users },
     { href: '/admin/reviews', label: 'Reviews', icon: Star },
+    { href: '/admin/messages', label: 'Messages', icon: Mail },
+    { href: '/admin/newsletter', label: 'Newsletter', icon: Megaphone },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ];
 
@@ -43,10 +47,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => { document.body.style.overflow = ''; };
   }, [sidebarOpen]);
 
-  // Close sidebar on route change
-  useEffect(() => {
+  // Close sidebar on route change (adjust state during render)
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setSidebarOpen(false);
-  }, [pathname]);
+  }
 
   // Escape key
   const handleEscape = useCallback((e: KeyboardEvent) => {
@@ -58,16 +64,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => document.removeEventListener('keydown', handleEscape);
   }, [handleEscape]);
 
-  const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/');
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 flex items-center justify-between sticky top-0 z-40">
+  return (      <div className="min-h-screen bg-gray-50 flex">
+      {/* Top bar — fixed at top */}
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 flex items-center justify-between fixed top-0 left-0 right-0 z-40">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -86,12 +85,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/" className="text-sm text-gray-500 hover:text-brand-purple transition-colors">
             View Store
           </Link>
+          <AdminSearch />
         </div>
       </div>
 
       <div className="flex">
-        {/* Sidebar - Desktop */}
-        <aside className="hidden lg:block w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-53px)] sticky top-[53px]">
+        {/* Sidebar - Desktop: fixed in viewport, scrolls internally */}
+        <aside className="hidden lg:block w-64 bg-white border-r border-gray-200 flex-shrink-0 overflow-y-auto fixed top-[53px] left-0 h-[calc(100vh-53px)]">
           <nav className="p-4 space-y-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
@@ -112,13 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             })}
           </nav>
           <div className="p-4 border-t border-gray-100 mt-4">
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 w-full text-left transition-colors"
-            >
-              <LogOut className="h-5 w-5" />
-              Sign Out
-            </button>
+            <SignOutButton redirectTo="/admin/login" />
           </div>
         </aside>
 
@@ -165,20 +159,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 })}
               </nav>
               <div className="p-4 border-t border-gray-100">
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 w-full text-left"
-                >
-                  <LogOut className="h-5 w-5" />
-                  Sign Out
-                </button>
-              </div>
+              <SignOutButton redirectTo="/admin/login" label="Sign Out" />
+            </div>
             </div>
           </div>
         )}
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-8">{children}</main>
+        {/* Main Content — offset by sidebar on desktop */}
+        <main className="flex-1 p-4 lg:p-8 lg:ml-[16rem]">{children}</main>
       </div>
     </div>
   );
