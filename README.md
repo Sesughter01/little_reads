@@ -52,11 +52,12 @@ PAYSTACK_SECRET_KEY=sk_test_xxxxxxxx
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_SITE_NAME=LittleReads
 
-# Production payment return domains (comma-separated). Pin the exact domains
-# the Paystack callback may land on. If set, these are ALSO preferred over
-# NEXT_PUBLIC_SITE_URL as the fallback, so a stale NEXT_PUBLIC_SITE_URL can
-# never send customers back to the wrong site after paying.
-# Example: ALLOWED_CALLBACK_HOSTS=littlereads.com.ng,www.littlereads.com.ng
+# Extra payment return domains (comma-separated), e.g. staging hosts.
+# The production domains littlereads.com.ng and www.littlereads.com.ng are
+# already pinned IN CODE (src/lib/checkout-callback.ts) and always win over
+# NEXT_PUBLIC_SITE_URL as the callback fallback — this var only EXTENDS the
+# trusted list.
+# Example: ALLOWED_CALLBACK_HOSTS=staging.littlereads.com.ng
 # ALLOWED_CALLBACK_HOSTS=
 
 # Secret protecting the /api/cron/reconcile-pending fulfillment sweep
@@ -186,8 +187,11 @@ fulfills the order through three independent paths:
 1. **Webhook** — Paystack posts `charge.success` to
    `/api/webhooks/paystack` (HMAC-verified).
 2. **Return reconcile** — the customer is redirected back to
-   `/checkout/success?ref=…`, which re-verifies server-side. This only works
-   if the callback lands on the app (see `ALLOWED_CALLBACK_HOSTS` above).
+   `/checkout/success?ref=…`, which re-verifies server-side. The callback
+   origin comes from the request host when it is trusted (the production
+   domains are pinned in code; `*.vercel.app` and loopback are always
+   allowed) and otherwise falls back to the pinned production domain —
+   never to a foreign host, no matter what `NEXT_PUBLIC_SITE_URL` says.
 3. **Fulfillment sweep** — `/api/cron/reconcile-pending` runs on a schedule
    (see `vercel.json`), finds every `pending` order that carries a Paystack
    reference, verifies each transaction directly with Paystack, and fulfills
