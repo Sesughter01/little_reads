@@ -18,21 +18,19 @@
  *   localhost dev
  *     → http://localhost:3000 callback
  *
- * Only hosts on the allow-list are trusted (Vercel aliases, the configured
- * production domain, local loopback, and any hosts pinned via
+ * Only hosts on the allow-list are trusted (the code-pinned production
+ * domains, Vercel aliases, local loopback, and any extra hosts added via
  * ALLOWED_CALLBACK_HOSTS) — an attacker can never point the callback at an
  * arbitrary foreign host. Fulfillment itself is still gated by authenticated
  * order ownership on /checkout/success, so even a hostile callback target
  * could not grant library access.
  *
- * ALLOWED_CALLBACK_HOSTS (comma-separated, e.g.
- * "littlereads.com.ng,www.littlereads.com.ng") lets operators pin the exact
- * production domains the payment return may land on. It is also preferred
- * over NEXT_PUBLIC_SITE_URL as the fallback origin, so a stale/misconfigured
- * NEXT_PUBLIC_SITE_URL can never steer the callback away from the app (a
- * real failure mode: one deployment had it pointed at a foreign domain and
- * customers were sent back there after paying, while the order stayed
- * pending because the success-page reconcile never ran).
+ * The production domains are pinned IN CODE (DEFAULT_PINNED_HOSTS) because
+ * the original failure was itself a configuration failure: a deployment had
+ * NEXT_PUBLIC_SITE_URL pointed at a foreign domain, customers were sent back
+ * there after paying, and the order stayed pending because the success-page
+ * reconcile never ran. Correctness must not depend on env vars being right.
+ * ALLOWED_CALLBACK_HOSTS (comma-separated) only EXTENDS the trusted list.
  */
 
 type HeaderBag = { get(name: string): string | null };
@@ -40,13 +38,24 @@ type HeaderBag = { get(name: string): string | null };
 const LOOPBACK_HOSTS = new Set(['localhost', 'localhost:3000', '127.0.0.1', '127.0.0.1:3000', '[::1]', '[::1]:3000']);
 
 /**
- * Production hosts explicitly pinned by the operator via
- * ALLOWED_CALLBACK_HOSTS (comma-separated; schemes/ports are stripped).
+ * This app's known production domains, pinned in code as a safe default.
+ *
+ * Rationale: the callback failure that motivated this module was itself a
+ * CONFIGURATION failure (a stale NEXT_PUBLIC_SITE_URL pointing at a foreign
+ * domain). Making the correct callback depend on more configuration would
+ * repeat the same mistake, so the production domain is baked in here and
+ * ALLOWED_CALLBACK_HOSTS only EXTENDS the list (e.g. for staging domains).
+ */
+const DEFAULT_PINNED_HOSTS = ['littlereads.com.ng', 'www.littlereads.com.ng'];
+
+/**
+ * Trusted callback hosts: the code-pinned production domains plus any
+ * extra hosts from ALLOWED_CALLBACK_HOSTS (comma-separated; schemes/ports
+ * are stripped).
  */
 export function getAllowedCallbackHosts(): string[] {
-  const raw = process.env.ALLOWED_CALLBACK_HOSTS?.trim();
-  if (!raw) return [];
-  return raw
+  const raw = process.env.ALLOWED_CALLBACK_HOSTS?.trim() || '';
+  const extra = raw
     .split(',')
     .map((h) =>
       h
@@ -56,20 +65,23 @@ export function getAllowedCallbackHosts(): string[] {
         .replace(/\/+$/, '')
     )
     .filter(Boolean);
+  return [...new Set([...DEFAULT_PINNED_HOSTS, ...extra])];
 }
 
 /**
  * The trusted fallback origin for the callback.
  *
  * Preference order:
- *   1. ALLOWED_CALLBACK_HOSTS first entry (deliberately pinned by operators)
- *   2. NEXT_PUBLIC_SITE_URL (legacy/backwards compatible)
+ *   1. Code-pinned production domain (DEFAULT_PINNED_HOSTS[0])
+ *   2. ALLOWED_CALLBACK_HOSTS first extra entry, if any
+ *   3. NEXT_PUBLIC_SITE_URL (legacy/backwards compatible)
  *
- * Pinning wins because a stale NEXT_PUBLIC_SITE_URL must never steer the
- * payment return to a foreign host — the order would stay pending forever.
+ * A code-pinned domain wins because a stale/misconfigured NEXT_PUBLIC_SITE_URL
+ * must never steer the payment return to a foreign host — the order would
+ * stay pending forever (the exact production incident this module exists for).
  */
 function configuredSiteOrigin(): string | null {
-  const pinned = getAllowedCallbackHosts()[0];
+  const pinned = DEFAULT_PINNED_HOSTS[0];
   if (pinned) return `https://${pinned}`;
 
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -87,9 +99,10 @@ function configuredSiteOrigin(): string | null {
  * Is this request host permitted as a Paystack callback target?
  *
  * Permitted:
+ *  - the code-pinned production domains (DEFAULT_PINNED_HOSTS)
  *  - loopback hosts (local development)
  *  - *.vercel.app aliases (this app's Preview + Production hosts)
- *  - hosts explicitly pinned in ALLOWED_CALLBACK_HOSTS (exact match)
+ *  - extra hosts pinned in ALLOWED_CALLBACK_HOSTS (exact match)
  *  - the configured production domain (NEXT_PUBLIC_SITE_URL) and subdomains
  */
 export function isAllowedCallbackHost(host: string | null | undefined): boolean {
