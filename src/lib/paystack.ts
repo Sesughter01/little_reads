@@ -91,7 +91,38 @@ export async function initializePaystackTransaction(params: {
     }),
   });
 
-  return response.json();
+  return parsePaystackJson<PaystackInitializeResponse>(response);
+}
+
+/**
+ * Parse a Paystack API response without ever throwing.
+ *
+ * When Paystack rate-limits (429) or errors with an HTML/plain-text body
+ * (502/503 pages from its edge), `response.json()` throws — and in the
+ * webhook and sweep paths that throw was surfaced as a generic 500 instead
+ * of a typed, retryable failure. This helper converts any non-JSON body or
+ * network-level failure into a well-formed { status: false } response so
+ * callers keep their normal failure handling.
+ */
+async function parsePaystackJson<T extends { status: boolean; message: string }>(
+  response: Response
+): Promise<T> {
+  try {
+    const bodyText = await response.text();
+    const parsed = JSON.parse(bodyText) as T;
+    if (typeof parsed.status !== 'boolean') {
+      return {
+        status: false,
+        message: `Unexpected Paystack response shape (HTTP ${response.status})`,
+      } as T;
+    }
+    return parsed;
+  } catch {
+    return {
+      status: false,
+      message: `Paystack returned a non-JSON response (HTTP ${response.status})`,
+    } as T;
+  }
 }
 
 export async function verifyPaystackTransaction(
@@ -108,7 +139,7 @@ export async function verifyPaystackTransaction(
     }
   );
 
-  return response.json();
+  return parsePaystackJson<PaystackVerifyResponse>(response);
 }
 
 export function generateOrderReference(): string {

@@ -407,4 +407,87 @@ describe('Paystack configuration and webhook security', () => {
       expect(isPaystackConfigured()).toBe(true);
     }
   });
+
+  it('verify returns a typed failure (never throws) when Paystack sends a non-JSON body', async () => {
+    // Paystack rate-limits (429) and edge errors (502/503) return HTML or
+    // plain text. response.json() would throw and surface as a generic 500
+    // in the webhook/sweep paths; instead callers must get status:false.
+    process.env.PAYSTACK_SECRET_KEY = 'sk_test_abcd1234';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response('<html>502 Bad Gateway</html>', {
+          status: 502,
+          headers: { 'Content-Type': 'text/html' },
+        })
+      )
+    );
+
+    const { verifyPaystackTransaction } = await import('@/lib/paystack');
+    const result = await verifyPaystackTransaction('LR-TEST-REF');
+
+    expect(result.status).toBe(false);
+    expect(result.message).toContain('non-JSON response');
+    expect(result.message).toContain('502');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('verify returns a typed failure for an unexpected JSON shape', async () => {
+    process.env.PAYSTACK_SECRET_KEY = 'sk_test_abcd1234';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(JSON.stringify({ foo: 'bar' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    );
+
+    const { verifyPaystackTransaction } = await import('@/lib/paystack');
+    const result = await verifyPaystackTransaction('LR-TEST-REF');
+
+    expect(result.status).toBe(false);
+    expect(result.message).toContain('Unexpected Paystack response shape');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('verify still parses well-formed Paystack success responses', async () => {
+    process.env.PAYSTACK_SECRET_KEY = 'sk_test_abcd1234';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            status: true,
+            message: 'Verification successful',
+            data: {
+              id: 1,
+              domain: 'test',
+              status: 'success',
+              reference: 'LR-TEST-REF',
+              amount: 150000,
+              currency: 'NGN',
+              gateway_response: 'Successful',
+              paid_at: '2026-09-07T10:00:00Z',
+              created_at: '2026-09-07T09:59:00Z',
+              channel: 'card',
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      )
+    );
+
+    const { verifyPaystackTransaction } = await import('@/lib/paystack');
+    const result = await verifyPaystackTransaction('LR-TEST-REF');
+
+    expect(result.status).toBe(true);
+    expect(result.data.status).toBe('success');
+    expect(result.data.amount).toBe(150000);
+
+    vi.unstubAllGlobals();
+  });
 });
