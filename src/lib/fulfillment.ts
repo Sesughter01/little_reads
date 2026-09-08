@@ -25,6 +25,7 @@ export type FulfillmentResult = {
     | 'ORDER_NOT_FOUND'
     | 'PAYSTACK_VERIFY_FAILED'
     | 'NOT_PAID'
+    | 'REFERENCE_MISMATCH'
     | 'AMOUNT_MISMATCH'
     | 'CURRENCY_MISMATCH'
     | 'ORDER_MARKED_PAID'
@@ -36,6 +37,26 @@ export type FulfillmentResult = {
     | 'ALREADY_FULFILLED'
     | 'ORDER_LOOKUP_ERROR';
 };
+
+type PaymentValidationFailure =
+  | 'NOT_PAID'
+  | 'REFERENCE_MISMATCH'
+  | 'AMOUNT_MISMATCH'
+  | 'CURRENCY_MISMATCH';
+
+/** Pure validation gate used before any order or entitlement write. */
+export function validateVerifiedPayment(
+  expected: { reference: string; totalNaira: number; currency: string },
+  actual: { status: string; reference: string; amount: number; currency: string }
+): PaymentValidationFailure | null {
+  if (actual.status !== 'success') return 'NOT_PAID';
+  if (actual.reference !== expected.reference) return 'REFERENCE_MISMATCH';
+  if (actual.amount !== Math.round(expected.totalNaira * 100)) {
+    return 'AMOUNT_MISMATCH';
+  }
+  if (actual.currency !== expected.currency) return 'CURRENCY_MISMATCH';
+  return null;
+}
 
 /**
  * ONE idempotent fulfillment path for a paid Paystack order.
@@ -96,7 +117,16 @@ export async function fulfillPaidOrder(
       return fail({ orderStatus: order.status, orderMarkedPaid: false, purchasesCreated: 0, purchasesAlreadyExisting: 0, message: verification.message || 'Payment verification failed', code: 'PAYSTACK_VERIFY_FAILED' });
     }
 
-    if (verification.data.status !== 'success') {
+    const validationFailure = validateVerifiedPayment(
+      {
+        reference,
+        totalNaira: order.total,
+        currency: order.currency,
+      },
+      verification.data
+    );
+
+    if (validationFailure === 'NOT_PAID') {
       // Payment did not actually succeed (e.g. abandoned/failed) — not an
       // infra error, but never fulfill. Return 200 so Paystack stops retrying.
       return {
@@ -111,8 +141,25 @@ export async function fulfillPaidOrder(
       };
     }
 
+    // The verified payload must identify the exact transaction/order requested.
+    if (validationFailure === 'REFERENCE_MISMATCH') {
+      console.error('fulfillment: reference mismatch', {
+        code: 'REFERENCE_MISMATCH',
+      });
+      return {
+        ok: false,
+        status: 200,
+        orderStatus: order.status,
+        orderMarkedPaid: false,
+        purchasesCreated: 0,
+        purchasesAlreadyExisting: 0,
+        message: 'Payment reference does not match the order',
+        code: 'REFERENCE_MISMATCH',
+      };
+    }
+
     const expectedAmount = Math.round(order.total * 100); // Naira → kobo
-    if (verification.data.amount !== expectedAmount) {
+    if (validationFailure === 'AMOUNT_MISMATCH') {
       console.error('fulfillment: amount mismatch', {
         code: 'AMOUNT_MISMATCH',
         paid: verification.data.amount,
@@ -130,7 +177,7 @@ export async function fulfillPaidOrder(
       };
     }
 
-    if (verification.data.currency !== 'NGN') {
+    if (validationFailure === 'CURRENCY_MISMATCH') {
       console.error('fulfillment: currency mismatch', {
         code: 'CURRENCY_MISMATCH',
         currency: verification.data.currency,
@@ -142,7 +189,7 @@ export async function fulfillPaidOrder(
         orderMarkedPaid: false,
         purchasesCreated: 0,
         purchasesAlreadyExisting: 0,
-        message: 'Payment currency is not NGN',
+        message: `Payment currency does not match the order currency (${order.currency})`,
         code: 'CURRENCY_MISMATCH',
       };
     }

@@ -181,10 +181,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Paystack transaction. The callback URL is derived from the
-    // ACTUAL request origin (never a build-time NEXT_PUBLIC_SITE_URL) so that
-    // payment returns land on the same deployment the customer started on -
-    // Production, Preview, or localhost.
+    // Initialize Paystack transaction. Production and Preview deployments both
+    // return to the canonical Little Reads domain; only local development may
+    // use the incoming loopback origin.
     const callback_url = buildCheckoutCallbackUrl(request.headers, paystack_reference);
 
     const paystackResponse = await initializePaystackTransaction({

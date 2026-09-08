@@ -167,7 +167,14 @@ export function verifyWebhookSignature(
     .update(body)
     .digest('hex');
 
-  return hash === signature;
+  // Compare equal-length buffers in constant time. Besides being safer than a
+  // normal string comparison, the length guard prevents timingSafeEqual from
+  // throwing on malformed signatures.
+  if (!/^[a-f0-9]{128}$/i.test(signature)) return false;
+  return crypto.timingSafeEqual(
+    Buffer.from(hash, 'hex'),
+    Buffer.from(signature, 'hex')
+  );
 }
 
 // Price in Naira to Paystack kobo

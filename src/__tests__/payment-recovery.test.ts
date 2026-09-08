@@ -1,15 +1,17 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
-  isAllowedCallbackHost,
+  CANONICAL_SITE_ORIGIN,
+  isLocalCallbackHost,
   resolveCallbackOrigin,
   buildCheckoutCallbackUrl,
 } from '@/lib/checkout-callback';
+import { initializePaystackTransaction } from '@/lib/paystack';
 import {
   evaluateCustomerReconcile,
   evaluateAdminReconcile,
   type ReconcileOrderShape,
 } from '@/lib/reconcile-policy';
-import { maskReference } from '@/lib/fulfillment';
+import { maskReference, validateVerifiedPayment } from '@/lib/fulfillment';
 
 // ============================================
 // Paystack callback origin construction
@@ -34,21 +36,22 @@ const prodOrder = {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
 });
 
 describe('Callback origin construction', () => {
-  it('derives the production origin from the live request host', () => {
-    const origin = resolveCallbackOrigin(fakeRequest('little-reads.vercel.app'));
-    expect(origin).toBe('https://little-reads.vercel.app');
+  it('uses the canonical production URL for a production request', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const origin = resolveCallbackOrigin(fakeRequest('littlereads.com.ng'));
+    expect(origin).toBe(CANONICAL_SITE_ORIGIN);
   });
 
-  it('derives a Preview origin from the request when running on a preview alias', () => {
+  it('does not let a Vercel Preview deployment override the canonical callback', () => {
+    vi.stubEnv('NODE_ENV', 'production');
     const origin = resolveCallbackOrigin(
       fakeRequest('little-reads-3o3a2ud48-sesughter01s-projects.vercel.app')
     );
-    expect(origin).toBe(
-      'https://little-reads-3o3a2ud48-sesughter01s-projects.vercel.app'
-    );
+    expect(origin).toBe(CANONICAL_SITE_ORIGIN);
   });
 
   it('keeps localhost callbacks working in development (http proto)', () => {
@@ -58,92 +61,44 @@ describe('Callback origin construction', () => {
     ).toBe('http://localhost:3000');
   });
 
-  it('derives the proto from the trusted proxy header when present', () => {
+  it('supports HTTPS loopback when explicitly forwarded during development', () => {
+    vi.stubEnv('NODE_ENV', 'development');
     expect(
       resolveCallbackOrigin(fakeRequest('localhost:3000', 'https'))
     ).toBe('https://localhost:3000');
   });
 
-  it('honors x-forwarded-proto when present', () => {
-    const origin = resolveCallbackOrigin(
-      fakeRequest('little-reads.vercel.app', 'http')
+  it('recognizes only loopback hosts as local callback targets', () => {
+    expect(isLocalCallbackHost('localhost:3000')).toBe(true);
+    expect(isLocalCallbackHost('127.0.0.1:4321')).toBe(true);
+    expect(isLocalCallbackHost('evil.example.com')).toBe(false);
+    expect(isLocalCallbackHost('localhost.evil.example.com')).toBe(false);
+  });
+
+  it('ignores a stale NEXT_PUBLIC_SITE_URL in production', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://upskiiltech.com');
+    const origin = resolveCallbackOrigin(fakeRequest('evil.example.com'));
+    expect(origin).toBe(CANONICAL_SITE_ORIGIN);
+  });
+
+  it('ignores Vercel URL environment variables', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('VERCEL_URL', 'random-preview.vercel.app');
+    vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'old-project.vercel.app');
+    expect(resolveCallbackOrigin(fakeRequest('random-preview.vercel.app'))).toBe(
+      CANONICAL_SITE_ORIGIN
     );
-    expect(origin).toBe('http://little-reads.vercel.app');
-  });
-
-  it('never lets a foreign host steer the callback (falls back to the pinned production domain)', () => {
-    // Even a stale NEXT_PUBLIC_SITE_URL pointing at a foreign domain must
-    // lose to the code-pinned production domain.
-    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', ''); // hermetic: ignore .env.local extras
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://upskiiltech.com');
-    const origin = resolveCallbackOrigin(fakeRequest('evil.example.com'));
-    expect(origin).toBe('https://littlereads.com.ng');
-  });
-
-  it('falls back to the pinned production domain even with no site URL configured', () => {
-    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', ''); // hermetic: ignore .env.local extras
-    const origin = resolveCallbackOrigin(fakeRequest('evil.example.com'));
-    expect(origin).toBe('https://littlereads.com.ng');
-  });
-
-  it('rejects disallowed hosts in the allow-list check', () => {
-    expect(isAllowedCallbackHost('evil.example.com')).toBe(false);
-    expect(isAllowedCallbackHost('notvercel.app.evil.com')).toBe(false);
-    expect(isAllowedCallbackHost(null)).toBe(false);
-  });
-
-  it('allows hosts pinned in ALLOWED_CALLBACK_HOSTS (custom production domain)', () => {
-    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', 'littlereads.com.ng,www.littlereads.com.ng');
-    expect(isAllowedCallbackHost('littlereads.com.ng')).toBe(true);
-    expect(isAllowedCallbackHost('www.littlereads.com.ng')).toBe(true);
-    expect(isAllowedCallbackHost('evil.example.com')).toBe(false);
-  });
-
-  it('pinned production hosts are trusted even when ALLOWED_CALLBACK_HOSTS is unset', () => {
-    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', ''); // hermetic: code-pinned defaults remain
-    expect(isAllowedCallbackHost('littlereads.com.ng')).toBe(true);
-    expect(isAllowedCallbackHost('www.littlereads.com.ng')).toBe(true);
-  });
-
-  it('derives the callback origin from a pinned custom domain request host', () => {
-    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', 'littlereads.com.ng,www.littlereads.com.ng');
-    const origin = resolveCallbackOrigin(fakeRequest('www.littlereads.com.ng'));
-    expect(origin).toBe('https://www.littlereads.com.ng');
-  });
-
-  it('prefers the pinned allow-list host over a stale NEXT_PUBLIC_SITE_URL as fallback', () => {
-    // NEXT_PUBLIC_SITE_URL pointed at a foreign domain (the real failure
-    // mode: customers were sent back to the wrong site after paying). The
-    // pinned allow-list must win so the callback stays on the app.
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://upskiiltech.com');
-    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', 'littlereads.com.ng,www.littlereads.com.ng');
-    const origin = resolveCallbackOrigin(fakeRequest('some-unknown-host.example.com'));
-    expect(origin).toBe('https://littlereads.com.ng');
-  });
-
-  it('NEXT_PUBLIC_SITE_URL can no longer override the fallback (pinned domain wins)', () => {
-    // The production incident: NEXT_PUBLIC_SITE_URL pointed at a foreign
-    // domain and became the fallback. The code-pinned domain now wins.
-    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', ''); // hermetic: ignore .env.local extras
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://upskiiltech.com');
-    const origin = resolveCallbackOrigin(fakeRequest('some-unknown-host.example.com'));
-    expect(origin).toBe('https://littlereads.com.ng');
-  });
-
-  it('ALLOWED_CALLBACK_HOSTS extends the trusted list with extra domains', () => {
-    vi.stubEnv('ALLOWED_CALLBACK_HOSTS', 'staging.littlereads.com.ng');
-    expect(isAllowedCallbackHost('staging.littlereads.com.ng')).toBe(true);
-    const origin = resolveCallbackOrigin(fakeRequest('staging.littlereads.com.ng'));
-    expect(origin).toBe('https://staging.littlereads.com.ng');
   });
 
   it('builds the full success-page callback URL with the reference', () => {
+    vi.stubEnv('NODE_ENV', 'production');
     const url = buildCheckoutCallbackUrl(
       fakeRequest('little-reads.vercel.app'),
       'LR-ABC123'
     );
     expect(url).toBe(
-      'https://little-reads.vercel.app/checkout/success?ref=LR-ABC123'
+      'https://littlereads.com.ng/checkout/success?ref=LR-ABC123'
     );
   });
 
@@ -152,7 +107,84 @@ describe('Callback origin construction', () => {
       fakeRequest('little-reads.vercel.app'),
       'LR-ABC 123'
     );
-    expect(url).toContain('ref=LR-ABC%20123');
+    expect(new URL(url).searchParams.get('ref')).toBe('LR-ABC 123');
+  });
+
+  it('sends the intended callback_url in Paystack initialization', async () => {
+    const callbackUrl = 'https://littlereads.com.ng/checkout/success?ref=LR-ABC123';
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      // Keep both arguments observable so this remains a real fetch-shaped mock.
+      expect(input.toString()).toBe('https://api.paystack.co/transaction/initialize');
+      expect(init?.method).toBe('POST');
+      return new Response(
+        JSON.stringify({
+          status: true,
+          message: 'Authorization URL created',
+          data: {
+            authorization_url: 'https://checkout.paystack.com/access-code',
+            access_code: 'access-code',
+            reference: 'LR-ABC123',
+          },
+        }),
+        { status: 200 }
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await initializePaystackTransaction({
+      email: 'buyer@example.com',
+      amount: 150000,
+      reference: 'LR-ABC123',
+      callback_url: callbackUrl,
+    });
+
+    expect(result.data.authorization_url).toContain('checkout.paystack.com');
+    const request = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(JSON.parse(request.body as string)).toMatchObject({
+      amount: 150000,
+      reference: 'LR-ABC123',
+      callback_url: callbackUrl,
+      currency: 'NGN',
+    });
+  });
+});
+
+describe('Verified payment write gate', () => {
+  const expected = {
+    reference: 'LR-ABC123',
+    totalNaira: 1500,
+    currency: 'NGN',
+  };
+  const paid = {
+    status: 'success',
+    reference: 'LR-ABC123',
+    amount: 150000,
+    currency: 'NGN',
+  };
+
+  it('accepts only the exact successful transaction for the order', () => {
+    expect(validateVerifiedPayment(expected, paid)).toBeNull();
+  });
+
+  it('rejects an invalid or mismatched reference before writes', () => {
+    expect(
+      validateVerifiedPayment(expected, { ...paid, reference: 'LR-OTHER' })
+    ).toBe('REFERENCE_MISMATCH');
+  });
+
+  it('rejects an amount mismatch before writes', () => {
+    expect(validateVerifiedPayment(expected, { ...paid, amount: 149999 })).toBe(
+      'AMOUNT_MISMATCH'
+    );
+  });
+
+  it('rejects non-success and currency mismatch transactions before writes', () => {
+    expect(validateVerifiedPayment(expected, { ...paid, status: 'failed' })).toBe(
+      'NOT_PAID'
+    );
+    expect(validateVerifiedPayment(expected, { ...paid, currency: 'USD' })).toBe(
+      'CURRENCY_MISMATCH'
+    );
   });
 });
 
