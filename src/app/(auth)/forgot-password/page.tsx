@@ -1,14 +1,22 @@
-import { getUserOrNull } from '@/lib/auth';
-import { redirect } from 'next/navigation';
 import ForgotPasswordClient from './forgot-password-client';
 
-export const dynamic = 'force-dynamic';
+export default async function ForgotPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    email?: string | string[];
+  }>;
+}) {
+  const params = await searchParams;
 
-export default async function ForgotPasswordPage() {
-  const user = await getUserOrNull();
-  if (user) {
-    redirect('/account');
-  }
+  const initialEmail =
+    typeof params.email === 'string'
+      ? params.email
+      : '';
 
-  return <ForgotPasswordClient />;
+  return (
+    <ForgotPasswordClient
+      initialEmail={initialEmail}
+    />
+  );
 }

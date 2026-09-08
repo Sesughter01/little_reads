@@ -11,18 +11,35 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function ForgotPasswordClient() {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+type ForgotPasswordClientProps = {
+  initialEmail?: string;
+};
+
+export default function ForgotPasswordClient({
+  initialEmail = '',
+}: ForgotPasswordClientProps) {
+  const [email, setEmail] = useState(
+    initialEmail.trim().toLowerCase()
+  );
+
+  const [isLoading, setIsLoading] =
+    useState(false);
+
   const [sent, setSent] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = email
+      .trim()
+      .toLowerCase();
 
     if (!normalizedEmail) {
-      toast.error('Please enter your email address.');
+      toast.error(
+        'Please enter your email address.'
+      );
       return;
     }
 
@@ -31,26 +48,42 @@ export default function ForgotPasswordClient() {
     try {
       const supabase = createClient();
 
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+      const configuredSiteUrl =
+        process.env.NEXT_PUBLIC_SITE_URL;
 
-      if (!siteUrl) {
-        throw new Error('NEXT_PUBLIC_SITE_URL is not configured.');
+      if (!configuredSiteUrl) {
+        throw new Error(
+          'NEXT_PUBLIC_SITE_URL is not configured.'
+        );
       }
 
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        normalizedEmail,
-        {
-          redirectTo: `${siteUrl}/reset-password`,
-        }
-      );
+      const siteUrl =
+        configuredSiteUrl.replace(/\/+$/, '');
+
+      const recoveryCallbackUrl =
+        `${siteUrl}/auth/callback?next=${encodeURIComponent(
+          '/reset-password'
+        )}`;
+
+      const { error } =
+        await supabase.auth.resetPasswordForEmail(
+          normalizedEmail,
+          {
+            redirectTo: recoveryCallbackUrl,
+          }
+        );
 
       if (error) {
         throw error;
       }
 
+      setEmail(normalizedEmail);
       setSent(true);
     } catch (error) {
-      console.error('Password reset request failed:', error);
+      console.error(
+        'Password reset request failed:',
+        error
+      );
 
       toast.error(
         error instanceof Error
@@ -66,8 +99,12 @@ export default function ForgotPasswordClient() {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2"
+          >
             <BookOpen className="h-10 w-10 text-brand-purple" />
+
             <span className="text-2xl font-bold text-brand-purple font-display">
               LittleReads
             </span>
@@ -78,7 +115,8 @@ export default function ForgotPasswordClient() {
           </h1>
 
           <p className="text-gray-500 mt-2">
-            Enter your email and we&apos;ll send you a reset link.
+            Enter your email and we&apos;ll
+            send you a reset link.
           </p>
         </div>
 
@@ -91,23 +129,39 @@ export default function ForgotPasswordClient() {
             </h2>
 
             <p className="text-gray-500 mb-6">
-              We&apos;ve sent a password reset link to {email}
+              We&apos;ve sent a password reset
+              link to{' '}
+              <span className="font-medium text-gray-700">
+                {email}
+              </span>
             </p>
 
-            <Link href="/login" className="btn-primary">
+            <Link
+              href="/login"
+              className="btn-primary"
+            >
               Back to Login
             </Link>
           </div>
         ) : (
           <div className="card">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-4"
+            >
               <div>
-                <label htmlFor="email" className="label">
+                <label
+                  htmlFor="email"
+                  className="label"
+                >
                   Email Address
                 </label>
 
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Mail
+                    className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"
+                    aria-hidden="true"
+                  />
 
                   <input
                     id="email"
@@ -115,7 +169,9 @@ export default function ForgotPasswordClient() {
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) =>
+                      setEmail(e.target.value)
+                    }
                     className="input pl-10"
                     placeholder="you@example.com"
                     autoComplete="email"
@@ -129,11 +185,20 @@ export default function ForgotPasswordClient() {
                 className="btn-primary w-full"
               >
                 {isLoading ? (
-                  <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                  <>
+                    <span
+                      className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                      aria-hidden="true"
+                    />
+                    Sending...
+                  </>
                 ) : (
                   <>
                     Send Reset Link
-                    <ArrowRight className="h-4 w-4 ml-2" />
+                    <ArrowRight
+                      className="h-4 w-4 ml-2"
+                      aria-hidden="true"
+                    />
                   </>
                 )}
               </button>
