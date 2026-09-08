@@ -1,8 +1,7 @@
 import Link from 'next/link';
-import { Star, BookOpen, SearchX } from 'lucide-react';
+import { SearchX, SlidersHorizontal } from 'lucide-react';
 import { ShopFilters } from '@/components/product/shop-filters';
-import { formatPrice, getAgeRangeText } from '@/lib/utils';
-import { AddToCartButton } from '@/components/cart/add-to-cart-button';
+import { BookCard } from '@/components/product/book-card';
 import type { Product } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -39,48 +38,22 @@ async function safeGetCategories() {
   }
 }
 
-function BookCard({ product }: { product: Product }) {
-  return (
-    <div className="rounded-2xl bg-white p-0 shadow-sm transition-all hover:shadow-md overflow-hidden">
-      <Link href={`/books/${product.slug}`} className="block">
-        <div className="relative aspect-[2/3] bg-gray-100 overflow-hidden">
-          {product.cover_url ? (
-            <img src={product.cover_url} alt={product.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-orange-100">
-              <BookOpen className="h-10 w-10 text-purple-300" />
-            </div>
-          )}
-          {product.sale_price && <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">Sale</span>}
-          {product.featured && <span className="absolute top-3 right-3 bg-orange-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">Featured</span>}
-        </div>
-      </Link>
-      <div className="p-4">
-        <div className="flex items-center gap-2 mb-2">
-          {product.category && (
-            <span className="text-xs font-medium text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">{product.category.name}</span>
-          )}
-          <span className="text-xs text-gray-500">{getAgeRangeText(product.age_min, product.age_max)}</span>
-        </div>
-        <Link href={`/books/${product.slug}`}>
-          <h3 className="font-semibold text-gray-900 mb-1 hover:text-purple-700 transition-colors line-clamp-2">{product.title}</h3>
-        </Link>
-        <p className="text-sm text-gray-500 mb-3 line-clamp-2">{product.short_description}</p>
-        {product.average_rating !== undefined && product.average_rating > 0 && (
-          <div className="flex items-center gap-1 mb-3">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <Star key={s} className={`h-4 w-4 ${s <= Math.round(product.average_rating!) ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-200 text-gray-200'}`} />
-            ))}
-            <span className="text-sm text-gray-500 ml-1">({product.review_count || 0})</span>
-          </div>
-        )}
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-gray-900">{formatPrice(product.sale_price || product.price)}</span>
-          <AddToCartButton product={product} size="sm" />
-        </div>
-      </div>
-    </div>
-  );
+const PAGE_SIZE = 12;
+
+function buildPageHref(params: {
+  category?: string;
+  search?: string;
+  sort?: string;
+  age?: string;
+  page: number;
+}) {
+  const sp = new URLSearchParams();
+  if (params.category) sp.set('category', params.category);
+  if (params.search) sp.set('search', params.search);
+  if (params.sort) sp.set('sort', params.sort);
+  if (params.age) sp.set('age', params.age);
+  sp.set('page', params.page.toString());
+  return `/shop?${sp.toString()}`;
 }
 
 export default async function ShopPage({
@@ -110,60 +83,106 @@ export default async function ShopPage({
     age_min: ageMin,
     age_max: ageMax,
     page,
-    limit: 12,
+    limit: PAGE_SIZE,
   });
 
   const categories = await safeGetCategories();
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const activeFilters = [
+    category ? categories.find((c) => c.slug === category)?.name ?? category : null,
+    age ? `Ages ${age.replace('-', '–')}` : null,
+    search ? `"${search}"` : null,
+  ].filter(Boolean) as string[];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-          {search ? `Search Results for "${search}"` : 'All Books'}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+      {/* Page header */}
+      <div className="mb-8 sm:mb-10">
+        {search ? (
+          <p className="text-xs font-semibold uppercase tracking-wider text-brand-orange mb-2">Search</p>
+        ) : (
+          <p className="text-xs font-semibold uppercase tracking-wider text-brand-orange mb-2">Bookstore</p>
+        )}
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 font-display">
+          {search ? `Results for "${search}"` : 'All Books'}
         </h1>
         <p className="text-gray-500 mt-2">
-          {total} {total === 1 ? 'book' : 'books'} found
+          {total} {total === 1 ? 'book' : 'books'}
+          {activeFilters.length > 0 && <> · {activeFilters.join(' · ')}</>}
         </p>
       </div>
 
       <div className="lg:grid lg:grid-cols-[240px_1fr] gap-8">
         <aside className="hidden lg:block">
-          <ShopFilters categories={categories} selectedCategory={category} selectedAge={age} selectedSort={sort} />
+          <div className="sticky top-24">
+            <ShopFilters categories={categories} selectedCategory={category} selectedAge={age} selectedSort={sort} />
+          </div>
         </aside>
 
-        <div>
+        <div className="min-w-0">
           <div className="lg:hidden mb-6">
             <ShopFilters categories={categories} selectedCategory={category} selectedAge={age} selectedSort={sort} mobile />
           </div>
 
           {products.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-              {products.map((product) => (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+              {products.map((product: Product) => (
                 <BookCard key={product.id} product={product} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-20">
-              <SearchX className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <div className="card text-center py-16 ring-1 ring-gray-100 shadow-none">
+              <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-brand-purple/10 flex items-center justify-center">
+                <SearchX className="h-8 w-8 text-brand-purple" aria-hidden="true" />
+              </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">No books found</h2>
-              <p className="text-gray-500">Try adjusting your filters or search terms</p>
+              <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+                Try adjusting your filters or search terms to discover more stories.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link href="/shop" className="btn-primary">Clear Filters</Link>
+                <Link href="/categories" className="btn-secondary">
+                  <SlidersHorizontal className="h-4 w-4 mr-2" aria-hidden="true" />
+                  Browse Categories
+                </Link>
+              </div>
             </div>
           )}
 
-          {total > 12 && (
-            <div className="flex items-center justify-center gap-2 mt-12">
-              {Array.from({ length: Math.ceil(total / 12) }, (_, i) => i + 1).map((p) => {
-                const sp = new URLSearchParams();
-                if (category) sp.set('category', category);
-                if (search) sp.set('search', search);
-                if (sort) sp.set('sort', sort);
-                if (age) sp.set('age', age);
-                sp.set('page', p.toString());
-                return (
-                  <a key={p} href={`/shop?${sp.toString()}`} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${p === page ? 'bg-purple-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>{p}</a>
-                );
-              })}
-            </div>
+          {totalPages > 1 && (
+            <nav className="flex items-center justify-center gap-2 mt-12" aria-label="Pagination">
+              {page > 1 && (
+                <Link
+                  href={buildPageHref({ category, search, sort, age, page: page - 1 })}
+                  className="px-4 py-2 rounded-xl text-sm font-medium bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  Previous
+                </Link>
+              )}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <Link
+                  key={p}
+                  href={buildPageHref({ category, search, sort, age, page: p })}
+                  aria-current={p === page ? 'page' : undefined}
+                  className={`min-w-[40px] px-4 py-2 rounded-xl text-sm font-medium text-center transition-colors ${
+                    p === page
+                      ? 'bg-brand-purple text-white shadow-sm'
+                      : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {p}
+                </Link>
+              ))}
+              {page < totalPages && (
+                <Link
+                  href={buildPageHref({ category, search, sort, age, page: page + 1 })}
+                  className="px-4 py-2 rounded-xl text-sm font-medium bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  Next
+                </Link>
+              )}
+            </nav>
           )}
         </div>
       </div>

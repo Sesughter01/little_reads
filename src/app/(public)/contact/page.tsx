@@ -1,5 +1,9 @@
 'use client';
 
+// Client-rendered page; avoids a Next 16 build-worker
+// prerender invariant failure on this route ("Expected workStore to be initialized").
+export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
 import { Mail, Send, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';

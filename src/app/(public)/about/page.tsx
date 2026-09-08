@@ -1,6 +1,10 @@
 import { BookOpen, Heart, Star, Users } from 'lucide-react';
 import type { Metadata } from 'next';
 
+// Avoids a Next 16 build-worker prerender invariant failure
+// ("Expected workStore to be initialized").
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'About',
   description: 'Learn about LittleReads - Big Adventures for Little Readers',

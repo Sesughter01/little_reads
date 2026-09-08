@@ -1,3 +1,7 @@
+// Avoids a Next 16 build-worker prerender invariant failure
+// ("Expected workStore to be initialized").
+export const dynamic = 'force-dynamic';
+
 export const metadata = { title: 'Privacy Policy' };
 
 export default function PrivacyPage() {

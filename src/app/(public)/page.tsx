@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, BookOpen, Download, Shield, Heart, Star, Search, ShoppingCart, CreditCard, Sprout, Leaf, TreePine } from 'lucide-react';
 import { BookCard } from '@/components/product/book-card';
+import { CategoryIcon } from '@/components/product/category-icon';
 import { NewsletterForm } from '@/components/newsletter-form';
 import type { Product, Category } from '@/types';
 
@@ -48,6 +49,29 @@ const fallbackCategories: Category[] = [
   { id: '8', name: 'Bedtime Stories', slug: 'bedtime-stories', description: 'Calm stories for bedtime', image_url: null, created_at: '' },
 ];
 
+/** Consistent section header: eyebrow + title + optional description, left or centered. */
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+  center = false,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  center?: boolean;
+}) {
+  return (
+    <div className={`mb-8 ${center ? 'text-center' : ''}`}>
+      {eyebrow && (
+        <p className="text-xs font-semibold uppercase tracking-wider text-brand-orange mb-2">{eyebrow}</p>
+      )}
+      <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 font-display">{title}</h2>
+      {description && <p className={`text-gray-500 mt-2 ${center ? 'max-w-xl mx-auto' : ''}`}>{description}</p>}
+    </div>
+  );
+}
+
 export default async function HomePage() {
   const { products: featuredBooks } = await safeGetProducts({ featured: true, limit: 8 });
   const categories = await safeGetCategories();
@@ -61,64 +85,113 @@ export default async function HomePage() {
     { label: 'Ages 8–10', description: 'Chapter books and complex stories', Icon: TreePine, min: 8, max: 10 },
   ];
 
+  const benefits = [
+    { icon: Star, title: 'Age-Appropriate', desc: 'Every story reviewed for ages 5–10', bg: 'bg-brand-yellow/15', color: 'text-brand-yellow' },
+    { icon: Download, title: 'Instant Access', desc: 'Download your PDFs immediately', bg: 'bg-brand-green/10', color: 'text-brand-green' },
+    { icon: BookOpen, title: 'Educational', desc: 'Learning outcomes with every book', bg: 'bg-brand-blue/10', color: 'text-brand-blue' },
+    { icon: Shield, title: 'Safe Content', desc: 'Curated and parent-approved', bg: 'bg-brand-purple/10', color: 'text-brand-purple' },
+    { icon: Heart, title: 'Read Anywhere', desc: 'Phone, tablet, or computer', bg: 'bg-brand-orange/10', color: 'text-brand-orange' },
+  ];
+
+  const steps = [
+    { step: '1', title: 'Find a Book', desc: 'Browse the collection by age or topic', icon: Search },
+    { step: '2', title: 'Add to Cart', desc: 'Pick the stories your child will love', icon: ShoppingCart },
+    { step: '3', title: 'Pay Securely', desc: 'Safe checkout with Paystack', icon: CreditCard },
+    { step: '4', title: 'Download & Read', desc: 'Instant PDF access, keep forever', icon: BookOpen },
+  ];
+
   return (
     <div>
-      {/* Hero - Compact, focused */}
-      <section className="relative bg-gradient-to-br from-purple-700 via-purple-600 to-indigo-700 text-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 relative z-10">
+      {/* 1. Hero — value proposition + primary CTA */}
+      <section className="relative bg-gradient-to-br from-brand-purple-dark via-brand-purple to-indigo-700 text-white overflow-hidden">
+        {/* Soft decorative blobs for depth, brand colors only */}
+        <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" aria-hidden="true" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-brand-orange/20 blur-3xl" aria-hidden="true" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24 relative z-10">
           <div className="max-w-2xl">
-            <p className="text-sm font-medium text-orange-300 mb-2">Big Adventures for Little Readers</p>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-4">
+            <p className="text-sm font-semibold text-brand-yellow mb-3 flex items-center gap-2">
+              <Star className="h-4 w-4 fill-brand-yellow" aria-hidden="true" />
+              Big Adventures for Little Readers
+            </p>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-5 font-display">
               Stories That Make Reading{' '}
-              <span className="text-orange-400">an Adventure</span>
+              <span className="text-brand-yellow">an Adventure</span>
             </h1>
-            <p className="text-base lg:text-lg text-white/80 mb-6 max-w-lg">
+            <p className="text-lg text-white/85 mb-8 max-w-lg leading-relaxed">
               Fun, educational ebooks for children ages 5–10. Instant PDF download after purchase.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
-              <Link href="/shop" className="inline-flex items-center justify-center rounded-xl bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-orange-600">
+              <Link
+                href="/shop"
+                className="inline-flex items-center justify-center rounded-xl bg-brand-orange px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/20 transition-all hover:bg-brand-orange-dark hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-purple"
+              >
                 Browse Books
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
               </Link>
-              <Link href="/categories" className="inline-flex items-center justify-center rounded-xl border-2 border-white/30 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10 transition-all">
-                Categories
+              <Link
+                href="/categories"
+                className="inline-flex items-center justify-center rounded-xl border-2 border-white/30 px-7 py-3.5 text-sm font-semibold text-white hover:bg-white/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                Explore Categories
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Featured Books */}
-      <section className="py-12 sm:py-16">
+      {/* 2. Categories */}
+      <section className="py-14 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Featured Books</h2>
-              <p className="text-gray-500 mt-1 text-sm">Handpicked stories for young readers</p>
-            </div>
-            <Link href="/shop" className="hidden sm:flex items-center gap-1 text-sm text-purple-700 font-semibold hover:underline">
-              View All <ArrowRight className="h-4 w-4" />
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+            <SectionHeading
+              eyebrow="Browse by topic"
+              title="Explore Categories"
+              description="Find stories that match your child's interests."
+            />
+            <Link href="/categories" className="hidden sm:flex items-center gap-1 text-sm font-semibold text-brand-purple hover:underline mb-1">
+              All Categories <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-            {displayFeatured.map((book: Product) => (
-              <BookCard key={book.id} product={book} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {displayCategories.slice(0, 8).map((cat: Category) => (
+              <Link
+                key={cat.id}
+                href={`/shop?category=${cat.slug}`}
+                className="group card !p-5 text-center ring-1 ring-gray-100 shadow-none hover:shadow-md hover:ring-brand-purple/30 hover:-translate-y-0.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+              >
+                <div className="w-11 h-11 mx-auto mb-3 rounded-xl bg-brand-purple/10 flex items-center justify-center transition-transform group-hover:scale-110">
+                  <CategoryIcon slug={cat.slug} className="h-5 w-5 text-brand-purple" />
+                </div>
+                <h3 className="font-semibold text-gray-900 text-sm group-hover:text-brand-purple transition-colors">{cat.name}</h3>
+              </Link>
             ))}
           </div>
           <div className="mt-6 text-center sm:hidden">
-            <Link href="/shop" className="btn-primary">View All Books</Link>
+            <Link href="/categories" className="btn-secondary">All Categories</Link>
           </div>
         </div>
       </section>
 
-      {/* Browse by Age */}
-      <section className="py-12 sm:py-16 bg-white">
+      {/* 3. Age discovery */}
+      <section className="py-14 sm:py-20 bg-white border-y border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-8 text-center">Browse by Age</h2>
+          <SectionHeading
+            eyebrow="The right book for every reader"
+            title="Browse by Age"
+            description="Every story is written for a specific reading stage."
+            center
+          />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {ageGroups.map((group) => (
-              <Link key={group.label} href={`/shop?age=${group.min}-${group.max}`} className="card text-center hover:border-purple-700 border-2 border-transparent transition-all group">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-purple-50 flex items-center justify-center group-hover:scale-110 transition-transform"><group.Icon className="h-6 w-6 text-brand-purple" /></div>
+              <Link
+                key={group.label}
+                href={`/shop?age=${group.min}-${group.max}`}
+                className="group card text-center ring-1 ring-gray-100 shadow-none hover:shadow-md hover:ring-brand-purple/30 hover:-translate-y-0.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+              >
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-brand-purple/10 flex items-center justify-center transition-transform group-hover:scale-110">
+                  <group.Icon className="h-6 w-6 text-brand-purple" aria-hidden="true" />
+                </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-1">{group.label}</h3>
                 <p className="text-sm text-gray-500">{group.description}</p>
               </Link>
@@ -127,34 +200,44 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="py-12 sm:py-16">
+      {/* 4. Featured books */}
+      <section className="py-14 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-8 text-center">Browse Categories</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {displayCategories.slice(0, 8).map((cat: Category) => (
-              <Link key={cat.id} href={`/shop?category=${cat.slug}`} className="card text-center hover:border-purple-700 border-2 border-transparent transition-all py-4">
-                <h3 className="font-semibold text-gray-900 text-sm group-hover:text-purple-700">{cat.name}</h3>
-              </Link>
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+            <SectionHeading
+              eyebrow="Loved by little readers"
+              title="Featured Books"
+              description="Handpicked stories for young readers."
+            />
+            <Link href="/shop" className="hidden sm:flex items-center gap-1 text-sm font-semibold text-brand-purple hover:underline mb-1">
+              View All <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+            {displayFeatured.map((book: Product) => (
+              <BookCard key={book.id} product={book} />
             ))}
+          </div>
+          <div className="mt-8 text-center sm:hidden">
+            <Link href="/shop" className="btn-primary">View All Books</Link>
           </div>
         </div>
       </section>
 
-      {/* Why Parents Love LittleReads */}
-      <section className="py-12 sm:py-16 bg-white">
+      {/* 5. Benefits */}
+      <section className="py-14 sm:py-20 bg-white border-y border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-8 text-center">Why Parents Love LittleReads</h2>
+          <SectionHeading
+            eyebrow="Why parents trust us"
+            title="Why Parents Love LittleReads"
+            center
+          />
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
-            {[
-              { icon: <Star className="h-6 w-6 text-yellow-500" />, title: 'Age-Appropriate', desc: 'Reviewed for ages 5–10' },
-              { icon: <Download className="h-6 w-6 text-green-500" />, title: 'Instant Access', desc: 'Download PDFs immediately' },
-              { icon: <BookOpen className="h-6 w-6 text-blue-500" />, title: 'Educational', desc: 'Learning outcomes included' },
-              { icon: <Shield className="h-6 w-6 text-purple-700" />, title: 'Safe Content', desc: 'Curated for children' },
-              { icon: <Heart className="h-6 w-6 text-red-500" />, title: 'Read Anywhere', desc: 'Phone, tablet, or computer' },
-            ].map((item) => (
+            {benefits.map((item) => (
               <div key={item.title} className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gray-50 flex items-center justify-center">{item.icon}</div>
+                <div className={`w-12 h-12 mx-auto mb-3 rounded-xl ${item.bg} flex items-center justify-center`}>
+                  <item.icon className={`h-6 w-6 ${item.color}`} aria-hidden="true" />
+                </div>
                 <h3 className="font-semibold text-gray-900 text-sm mb-1">{item.title}</h3>
                 <p className="text-xs text-gray-500">{item.desc}</p>
               </div>
@@ -164,17 +247,24 @@ export default async function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-12 sm:py-16">
+      <section className="py-14 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-8 text-center">How It Works</h2>
+          <SectionHeading
+            eyebrow="From browsing to bedtime story"
+            title="How It Works"
+            center
+          />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { step: '1', title: 'Find a Book', desc: 'Browse our collection', icon: Search },
-              { step: '2', title: 'Add to Cart', desc: 'Select books you love', icon: ShoppingCart },
-              { step: '3', title: 'Pay Securely', desc: 'Checkout with Paystack', icon: CreditCard },
-              { step: '4', title: 'Download & Read', desc: 'Get instant PDF access', icon: BookOpen },
-            ].map((item) => (                <div key={item.step} className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-purple-700 text-white flex items-center justify-center"><item.icon className="h-5 w-5" /></div>
+            {steps.map((item) => (
+              <div key={item.step} className="text-center">
+                <div className="relative w-12 h-12 mx-auto mb-3">
+                  <div className="w-12 h-12 rounded-full bg-brand-purple text-white flex items-center justify-center shadow-sm">
+                    <item.icon className="h-5 w-5" aria-hidden="true" />
+                  </div>
+                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-brand-orange text-white text-[10px] font-bold flex items-center justify-center">
+                    {item.step}
+                  </span>
+                </div>
                 <h3 className="font-semibold text-gray-900 text-sm mb-1">{item.title}</h3>
                 <p className="text-xs text-gray-500">{item.desc}</p>
               </div>
@@ -183,32 +273,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-12 sm:py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-8 text-center">Parent Testimonials</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { name: 'Adaeze O.', role: 'Parent of 2', text: "My daughter loves the Zara series! She asks to read it every night." },
-              { name: 'Tunde A.', role: 'Father', text: "Quality Nigerian children's books that are digital and easy to access." },
-              { name: 'Funke M.', role: 'Teacher', text: "I use these ebooks in my classroom. The children love them." },
-            ].map((t) => (
-              <div key={t.name} className="card">
-                <div className="flex items-center gap-0.5 mb-3">{[1, 2, 3, 4, 5].map((s) => <Star key={s} className="h-4 w-4 fill-yellow-400 text-yellow-400" />)}</div>
-                <p className="text-gray-600 mb-3 text-sm italic">&ldquo;{t.text}&rdquo;</p>
-                <p className="font-semibold text-gray-900 text-sm">{t.name}</p>
-                <p className="text-xs text-gray-500">{t.role}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Newsletter CTA */}
-      <section className="py-12 sm:py-16 bg-gradient-to-r from-purple-700 to-indigo-600 text-white">
-        <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 text-center overflow-hidden">
-          <h2 className="text-2xl font-bold mb-3">Join the LittleReads Family</h2>
-          <p className="text-white/80 mb-6 text-sm">Get updates on new books and special offers.</p>
+      {/* 6. Newsletter */}
+      <section className="relative py-14 sm:py-20 bg-gradient-to-r from-brand-purple-dark to-indigo-600 text-white overflow-hidden">
+        <div className="pointer-events-none absolute -top-20 right-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" aria-hidden="true" />
+        <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3 font-display">Join the LittleReads Family</h2>
+          <p className="text-white/80 mb-6 text-sm sm:text-base">Get updates on new books and special offers.</p>
           <NewsletterForm className="max-w-md mx-auto" />
         </div>
       </section>

@@ -1,5 +1,9 @@
 'use client';
 
+// Client-rendered cart/checkout page; avoids a Next 16 build-worker
+// prerender invariant failure on this route ("Expected workStore to be initialized").
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';

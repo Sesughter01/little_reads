@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { XCircle, ShoppingCart, RefreshCw, Mail } from 'lucide-react';
 
+// Avoids a Next 16 build-worker prerender invariant failure
+// ("Expected workStore to be initialized").
+export const dynamic = 'force-dynamic';
+
 export default function CheckoutFailedPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-20 text-center">
