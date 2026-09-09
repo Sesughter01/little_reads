@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
 import { Lock, CreditCard, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useClickGuard } from '@/lib/click-guard';
 
 interface CartItem {
   id: string;
@@ -21,6 +22,7 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const submitGuard = useClickGuard();
   const [user, setUser] = useState<{ id: string; email: string; user_metadata: Record<string, string> } | null>(null);
   const [form, setForm] = useState({
     firstName: '',
@@ -65,6 +67,7 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!submitGuard.claim()) return; // rapid repeated clicks: one payment attempt in flight
     setIsProcessing(true);
 
     try {
@@ -103,6 +106,7 @@ export default function CheckoutPage() {
         error instanceof Error ? error.message : 'Something went wrong. Please try again.'
       );
       setIsProcessing(false);
+      submitGuard.release();
     }
   };
 
@@ -168,19 +172,23 @@ export default function CheckoutPage() {
                 />
               </div>
               <div>
-                <label className="label">Email Address *</label>
+                <label className="label">Contact Email *</label>
                 <input
                   type="email"
                   required
-                  readOnly
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="input bg-gray-50"
+                  className="input"
                   placeholder="you@example.com"
-                  title="Orders are attached to your signed-in account email."
+                  title="Email for order receipts and correspondence."
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  Orders are attached to your account email.
+                  Receipts and order updates go to this address. Your purchase
+                  stays attached to your signed-in account
+                  {user?.email && user.email.trim().toLowerCase() !== form.email.trim().toLowerCase()
+                    ? ` (${user.email})`
+                    : ''}
+                  .
                 </p>
               </div>
               <div>

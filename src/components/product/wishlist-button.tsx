@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
+import { useClickGuard } from '@/lib/click-guard';
 
 interface WishlistButtonProps {
   productId: string;
@@ -14,6 +15,7 @@ export function WishlistButton({ productId, size = 'sm' }: WishlistButtonProps) 
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const submitGuard = useClickGuard();
 
   useEffect(() => {
     const supabase = createClient();
@@ -44,6 +46,7 @@ export function WishlistButton({ productId, size = 'sm' }: WishlistButtonProps) 
 
   const toggleWishlist = async () => {
     if (isLoading) return;
+    if (!submitGuard.claim()) return; // rapid repeated clicks
     setIsLoading(true);
 
     try {
@@ -90,6 +93,7 @@ export function WishlistButton({ productId, size = 'sm' }: WishlistButtonProps) 
       toast.error(error instanceof Error ? error.message : 'Wishlist update failed');
     } finally {
       setIsLoading(false);
+      submitGuard.release();
     }
   };
 

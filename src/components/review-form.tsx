@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Star, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { useClickGuard } from '@/lib/click-guard';
 
 interface ReviewFormProps {
   productId: string;
@@ -23,6 +24,7 @@ export function ReviewForm({
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const submitGuard = useClickGuard();
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
@@ -78,6 +80,7 @@ export function ReviewForm({
     e.preventDefault();
     if (rating === 0 || content.length < 10) return;
 
+    if (!submitGuard.claim()) return; // rapid repeated clicks: one review submission
     setSubmitting(true);
     setError('');
 
@@ -105,6 +108,7 @@ export function ReviewForm({
       setError('An error occurred. Please try again.');
     } finally {
       setSubmitting(false);
+      submitGuard.release();
     }
   };
 

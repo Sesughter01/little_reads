@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { safeRedirectPath } from '@/lib/safe-redirect';
+import { getEnvSiteOrigin } from '@/lib/site-url';
+import { useClickGuard } from '@/lib/click-guard';
+import { isRateLimitError, useRateLimitCooldown } from '@/lib/rate-limit';
 import { BookOpen, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -14,14 +18,29 @@ export default function RegisterClient() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const submitGuard = useClickGuard();
+  const { cooldown, startCooldown } = useRateLimitCooldown();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!submitGuard.claim()) return; // rapid repeated clicks: only one flight
     setIsLoading(true);
 
     const supabase = createClient();
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    // Environment URL strategy: the redirect origin is ALWAYS the env-scoped
+    // NEXT_PUBLIC_SITE_URL, validated and normalized by the shared helper
+    // (never window.location, no hardcoded domain fallback).
+    const siteUrl = getEnvSiteOrigin();
+
+    if (!siteUrl) {
+      toast.error(
+        'App URL is not configured. Set a valid NEXT_PUBLIC_SITE_URL for this environment.'
+      );
+      setIsLoading(false);
+      submitGuard.release();
+      return;
+    }
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -38,8 +57,14 @@ export default function RegisterClient() {
     });
 
     if (error) {
-      toast.error(error.message);
+      if (isRateLimitError(error)) {
+        toast.error('Too many attempts. Please wait a minute and try again.');
+        startCooldown();
+      } else {
+        toast.error(error.message);
+      }
       setIsLoading(false);
+      submitGuard.release();
       return;
     }
 
@@ -51,7 +76,7 @@ export default function RegisterClient() {
     if (data.session) {
       toast.success('Account created! Welcome to LittleReads.');
       const params = new URLSearchParams(window.location.search);
-      const redirectTo = params.get('redirect') || '/account';
+      const redirectTo = safeRedirectPath(params.get('redirect'), '/account');
       router.push(redirectTo);
       router.refresh();
     } else {
@@ -143,7 +168,7 @@ export default function RegisterClient() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || cooldown > 0}
               className="btn-primary w-full"
             >
               {isLoading ? (
@@ -155,6 +180,12 @@ export default function RegisterClient() {
                 </>
               )}
             </button>
+
+            {cooldown > 0 && (
+              <p className="text-center text-xs text-gray-500">
+                Too many attempts — try again in {cooldown}s.
+              </p>
+            )}
           </form>
         </div>
 

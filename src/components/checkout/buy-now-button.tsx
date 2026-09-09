@@ -2,12 +2,17 @@
 
 import { useRouter } from 'next/navigation';
 import { Zap } from 'lucide-react';
+import { useClickGuard } from '@/lib/click-guard';
 import type { Product } from '@/types';
 
 export function BuyNowButton({ product }: { product: Product }) {
   const router = useRouter();
+  const guard = useClickGuard();
 
   const handleBuyNow = () => {
+    // Synchronous guard: a rapid second click must not duplicate the cart
+    // write or push twice. Ends in navigation — no release needed.
+    if (!guard.claim()) return;
     const cart = JSON.parse(localStorage.getItem('littlereads_cart') || '[]');
     const exists = cart.some((item: { id: string }) => item.id === product.id);
 

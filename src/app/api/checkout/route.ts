@@ -17,7 +17,14 @@ import { z } from 'zod';
  */
 const checkoutSchema = z.object({
   customer_name: z.string().min(2).max(200),
-  customer_email: z.string().email(),
+  /**
+   * OPTIONAL contact email for order receipts/correspondence. When omitted it
+   * defaults to the signed-in account email. It is deliberately NOT used for
+   * Paystack initialization (the verified account email always receives the
+   * payment receipt) and never influences order ownership, which is derived
+   * from the authenticated session server-side.
+   */
+  customer_email: z.string().email().max(254).optional(),
   phone: z.string().max(20).optional(),
   items: z
     .array(
@@ -61,14 +68,19 @@ export async function POST(request: NextRequest) {
 
     // The order's owning user id is the authenticated user — never the client.
     const userId = authUser.id;
-
-    // The checkout email must belong to the signed-in account. This prevents
-    // a browser-supplied email from silently redefining purchase ownership.
     const accountEmail = (authUser.email || '').trim().toLowerCase();
-    const requestEmail = customer_email.trim().toLowerCase();
-    if (!accountEmail || requestEmail !== accountEmail) {
+
+    // Ownership-preserving contact email: the client MAY supply an alternative
+    // contact address for order correspondence, but ownership is and remains
+    // the authenticated session user. When no contact email is supplied the
+    // account email is used, exactly as before.
+    const contactEmail = customer_email
+      ? customer_email.trim().toLowerCase()
+      : accountEmail;
+
+    if (!accountEmail || !contactEmail) {
       return NextResponse.json(
-        { error: 'Use the email address on your account to check out.' },
+        { error: 'A valid email address is required to check out.' },
         { status: 400 }
       );
     }
@@ -139,7 +151,7 @@ export async function POST(request: NextRequest) {
       .from('orders')
       .insert({
         user_id: userId,
-        customer_email: accountEmail,
+        customer_email: contactEmail,
         customer_name,
         phone: phone || null,
         subtotal,
@@ -197,6 +209,9 @@ export async function POST(request: NextRequest) {
         customer_email: accountEmail,
         user_id: userId,
       },
+      // contact_email is recorded for support/receipt correspondence only.
+      // Keep it out of payment metadata: Paystack receipt always goes to the
+      // verified account email above.
     });
 
     if (!paystackResponse.status) {

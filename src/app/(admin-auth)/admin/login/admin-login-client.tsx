@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useClickGuard } from '@/lib/click-guard';
+import { isRateLimitError, useRateLimitCooldown } from '@/lib/rate-limit';
 import { BookOpen, Mail, Lock, ArrowRight, Shield, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -20,9 +22,12 @@ export default function AdminLoginClient() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const submitGuard = useClickGuard();
+  const { cooldown, startCooldown } = useRateLimitCooldown();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!submitGuard.claim()) return; // rapid repeated clicks: only one flight
     setIsLoading(true);
 
     const supabase = createClient();
@@ -33,8 +38,14 @@ export default function AdminLoginClient() {
     });
 
     if (error) {
-      toast.error(error.message);
+      if (isRateLimitError(error)) {
+        toast.error('Too many attempts. Please wait a minute and try again.');
+        startCooldown();
+      } else {
+        toast.error(error.message);
+      }
       setIsLoading(false);
+      submitGuard.release();
       return;
     }
 
@@ -43,6 +54,7 @@ export default function AdminLoginClient() {
     if (!user) {
       toast.error('Authentication failed');
       setIsLoading(false);
+      submitGuard.release();
       return;
     }
 
@@ -56,6 +68,7 @@ export default function AdminLoginClient() {
       await supabase.auth.signOut();
       toast.error('Access denied. Admin privileges required.');
       setIsLoading(false);
+      submitGuard.release();
       return;
     }
 
@@ -138,7 +151,7 @@ export default function AdminLoginClient() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || cooldown > 0}
               className="btn-primary w-full"
             >
               {isLoading ? (
@@ -150,6 +163,12 @@ export default function AdminLoginClient() {
                 </>
               )}
             </button>
+
+            {cooldown > 0 && (
+              <p className="text-center text-xs text-gray-500">
+                Too many attempts — try again in {cooldown}s.
+              </p>
+            )}
           </form>
 
           <div className="flex items-center gap-2 mt-5 pt-4 border-t border-gray-100">

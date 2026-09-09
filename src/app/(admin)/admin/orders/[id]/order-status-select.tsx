@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ORDER_STATUSES } from '@/lib/order-status';
 import toast from 'react-hot-toast';
+import { useClickGuard } from '@/lib/click-guard';
 
 export function OrderStatusSelect({
   orderId,
@@ -14,6 +15,7 @@ export function OrderStatusSelect({
 }) {
   const router = useRouter();
   const [isUpdating, setIsUpdating] = useState(false);
+  const updateGuard = useClickGuard();
 
   const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const next = e.target.value;
@@ -24,6 +26,7 @@ export function OrderStatusSelect({
       return;
     }
 
+    if (!updateGuard.claim()) return; // rapid repeated changes
     setIsUpdating(true);
     try {
       const res = await fetch(`/api/admin/orders/${orderId}/status`, {
@@ -44,6 +47,7 @@ export function OrderStatusSelect({
       e.target.value = currentStatus;
     } finally {
       setIsUpdating(false);
+      updateGuard.release();
     }
   };
 

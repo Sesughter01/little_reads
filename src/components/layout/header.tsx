@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { LittleReadsIcon } from '@/components/brand/littlereads-icon';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useClickGuard } from '@/lib/click-guard';
 import {
   ShoppingCart,
   Search,
@@ -36,6 +37,7 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const pathname = usePathname();
   const router = useRouter();
+  const signOutGuard = useClickGuard();
 
   // Auth listener
   useEffect(() => {
@@ -122,6 +124,9 @@ export function Header() {
   }, [handleEscape]);
 
   const handleSignOut = async () => {
+    // Synchronous guard: rapid repeated clicks fire sign out once. Ends in
+    // navigation — no release needed.
+    if (!signOutGuard.claim()) return;
     const supabase = createClient();
     await supabase.auth.signOut();
     setUser(null);

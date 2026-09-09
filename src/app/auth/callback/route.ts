@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import {
+  normalizeSiteOrigin,
+  parseSingleSiteUrl,
+} from '@/lib/site-url';
 
 /**
  * Supabase PKCE auth callback.
@@ -46,32 +50,27 @@ function getSafeNext(value: string | null): string | null {
 
 function getSiteOrigin(requestUrl: URL): string {
   /**
-   * Prefer the configured site URL.
-   *
-   * Production:
-   * NEXT_PUBLIC_SITE_URL=https://littlereads.com.ng
-   *
-   * Local:
-   * NEXT_PUBLIC_SITE_URL=http://localhost:3000
-   *
-   * No localhost or production domain is hardcoded here.
+   * Environment URL strategy (Phase 2): NEXT_PUBLIC_SITE_URL is the
+   * env-scoped single origin (each Vercel environment supplies its own
+   * value; local comes from .env.local). It is validated as ONE
+   * URL, trailing slashes normalized, and never loopback- or
+   * production-hardcoded here. The receiving origin is a last-resort
+   * fallback only.
    */
-  const configuredSiteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, '');
-
-  if (configuredSiteUrl) {
-    try {
-      return new URL(configuredSiteUrl).origin;
-    } catch {
-      console.error(
-        'Invalid NEXT_PUBLIC_SITE_URL configuration.'
-      );
-    }
+  const configured = parseSingleSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
+  if (configured) {
+    return configured;
   }
 
-  /**
-   * Safe fallback to the origin that received the callback.
-   */
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    console.error('Invalid NEXT_PUBLIC_SITE_URL configuration.');
+  }
+
+  const fallback = normalizeSiteOrigin(requestUrl.origin);
+  if (fallback && parseSingleSiteUrl(fallback)) {
+    return fallback;
+  }
+
   return requestUrl.origin;
 }
 

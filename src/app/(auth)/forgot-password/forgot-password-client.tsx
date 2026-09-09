@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { getEnvSiteOrigin } from '@/lib/site-url';
+import { useClickGuard } from '@/lib/click-guard';
+import { isRateLimitError, useRateLimitCooldown } from '@/lib/rate-limit';
 import {
   BookOpen,
   Mail,
@@ -22,10 +25,19 @@ export default function ForgotPasswordClient({
     initialEmail.trim().toLowerCase()
   );
 
+  // /auth/callback redirects here as ?error=invalid_recovery_link when the
+  // recovery code is missing or fails to exchange (expired/used link).
+  const isInvalidRecoveryLink =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('error') ===
+      'invalid_recovery_link';
+
   const [isLoading, setIsLoading] =
     useState(false);
 
   const [sent, setSent] = useState(false);
+  const submitGuard = useClickGuard();
+  const { cooldown, startCooldown } = useRateLimitCooldown();
 
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>
@@ -43,22 +55,22 @@ export default function ForgotPasswordClient({
       return;
     }
 
+    if (!submitGuard.claim()) return; // rapid repeated clicks: only one flight
     setIsLoading(true);
 
     try {
       const supabase = createClient();
 
-      const configuredSiteUrl =
-        process.env.NEXT_PUBLIC_SITE_URL;
+      // Environment URL strategy: the recovery link origin is ALWAYS the
+      // env-scoped NEXT_PUBLIC_SITE_URL, validated and normalized by the
+      // shared helper (never window.location, no hardcoded domain).
+      const siteUrl = getEnvSiteOrigin();
 
-      if (!configuredSiteUrl) {
+      if (!siteUrl) {
         throw new Error(
-          'NEXT_PUBLIC_SITE_URL is not configured.'
+          'NEXT_PUBLIC_SITE_URL is not configured or invalid.'
         );
       }
-
-      const siteUrl =
-        configuredSiteUrl.replace(/\/+$/, '');
 
       const recoveryCallbackUrl =
         `${siteUrl}/auth/callback?next=${encodeURIComponent(
@@ -79,19 +91,25 @@ export default function ForgotPasswordClient({
 
       setEmail(normalizedEmail);
       setSent(true);
-    } catch (error) {
+    } catch (caught) {
       console.error(
         'Password reset request failed:',
-        error
+        caught
       );
 
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Unable to send password reset email.'
-      );
+      if (isRateLimitError(caught)) {
+        toast.error('Too many reset requests. Please wait a minute and try again.');
+        startCooldown();
+      } else {
+        toast.error(
+          caught instanceof Error
+            ? caught.message
+            : 'Unable to send password reset email.'
+        );
+      }
     } finally {
       setIsLoading(false);
+      submitGuard.release();
     }
   };
 
@@ -119,6 +137,13 @@ export default function ForgotPasswordClient({
             send you a reset link.
           </p>
         </div>
+
+        {isInvalidRecoveryLink && (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 mb-6 text-sm text-amber-800">
+            That password reset link is invalid or has expired. Request a new
+            one below.
+          </div>
+        )}
 
         {sent ? (
           <div className="card text-center">
@@ -181,7 +206,7 @@ export default function ForgotPasswordClient({
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || cooldown > 0}
                 className="btn-primary w-full"
               >
                 {isLoading ? (
@@ -202,6 +227,12 @@ export default function ForgotPasswordClient({
                   </>
                 )}
               </button>
+
+              {cooldown > 0 && (
+                <p className="text-center text-xs text-gray-500">
+                  You can request another reset link in {cooldown}s.
+                </p>
+              )}
             </form>
           </div>
         )}

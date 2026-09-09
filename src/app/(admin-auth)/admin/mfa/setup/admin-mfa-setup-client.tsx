@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ShieldCheck, KeyRound, ArrowRight, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useClickGuard } from '@/lib/click-guard';
 
 type MfaStatus = {
   mfaEnabled: boolean;
@@ -23,6 +24,7 @@ export default function AdminMfaSetupClient() {
   const [secret, setSecret] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const mfaGuard = useClickGuard();
 
   useEffect(() => {
     fetch('/api/admin/mfa/status')
@@ -43,6 +45,7 @@ export default function AdminMfaSetupClient() {
   }, [router]);
 
   const handleEnroll = async () => {
+    if (!mfaGuard.claim()) return; // rapid repeated clicks
     setIsEnrolling(true);
     try {
       const res = await fetch('/api/admin/mfa/enroll', { method: 'POST' });
@@ -58,6 +61,7 @@ export default function AdminMfaSetupClient() {
       toast.error('Failed to enable MFA. Please try again.');
     } finally {
       setIsEnrolling(false);
+      mfaGuard.release();
     }
   };
 
@@ -67,6 +71,7 @@ export default function AdminMfaSetupClient() {
       toast.error('Enter the 6-digit code from your authenticator app');
       return;
     }
+    if (!mfaGuard.claim()) return; // rapid repeated clicks
     setIsVerifying(true);
     try {
       const res = await fetch('/api/admin/mfa/verify', {
@@ -86,6 +91,7 @@ export default function AdminMfaSetupClient() {
       toast.error('Verification failed. Please try again.');
     } finally {
       setIsVerifying(false);
+      mfaGuard.release();
     }
   };
 

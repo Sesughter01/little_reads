@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { resolveSignOutDestination } from '@/lib/sign-out';
+import { useClickGuard } from '@/lib/click-guard';
 
 interface SignOutButtonProps {
   /** Visual variant */
@@ -16,8 +17,12 @@ interface SignOutButtonProps {
 export function SignOutButton({ variant = 'sidebar', label = 'Sign Out', redirectTo }: SignOutButtonProps) {
   const router = useRouter();
   const destination = resolveSignOutDestination(redirectTo);
+  const signOutGuard = useClickGuard();
 
   const handleSignOut = async () => {
+    // Synchronous guard: rapid repeated clicks fire sign out once. Ends in
+    // navigation — no release needed.
+    if (!signOutGuard.claim()) return;
     const supabase = createClient();
     await supabase.auth.signOut();
     router.replace(destination);

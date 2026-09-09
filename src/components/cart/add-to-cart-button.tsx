@@ -3,6 +3,7 @@
 import { ShoppingCart, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useClickGuard } from '@/lib/click-guard';
 import type { Product } from '@/types';
 
 export function AddToCartButton({
@@ -14,6 +15,7 @@ export function AddToCartButton({
 }) {
   const [isInCart, setIsInCart] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const guard = useClickGuard();
 
   /* eslint-disable react-hooks/set-state-in-effect -- one-time check of cart membership in localStorage on mount */
   useEffect(() => {
@@ -23,6 +25,7 @@ export function AddToCartButton({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleAddToCart = async () => {
+    if (!guard.claim()) return; // rapid repeated clicks
     setIsLoading(true);
 
     // Small delay for UX feedback
@@ -33,6 +36,7 @@ export function AddToCartButton({
     if (cart.some((item: { id: string }) => item.id === product.id)) {
       toast('This book is already in your cart');
       setIsLoading(false);
+      guard.release();
       return;
     }
 
@@ -50,6 +54,7 @@ export function AddToCartButton({
     toast.success(`"${product.title}" added to cart!`);
     window.dispatchEvent(new Event('cart-updated'));
     setIsLoading(false);
+    guard.release();
   };
 
   if (isInCart) {
