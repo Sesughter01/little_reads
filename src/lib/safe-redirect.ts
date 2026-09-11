@@ -42,8 +42,19 @@ const ABSOLUTE_PATH = /^\/[^/\\]/;
  * Accepts absolute in-app paths (with query/hash), and a small allowlist of
  * relative forms (`checkout`, `checkout/success`), which are resolved against
  * the app root — never against the current page URL.
+ *
+ * options.allowMidFlowOnly — used by the PKCE auth callback, which
+ * legitimately receives ?next=/reset-password for the recovery flow. When
+ * set, mid-flow-only pages (/reset-password, /forgot-password) are accepted;
+ * default post-sign-in validation keeps rejecting them.
  */
-export function isSafeRedirectPath(value: string | null | undefined): boolean {
+export function isSafeRedirectPath(
+  value: string | null | undefined,
+  options?: { allowMidFlowOnly?: boolean }
+): boolean {
+  const blockedPaths = options?.allowMidFlowOnly
+    ? SELF_AUTH_PATHS
+    : BLOCKED_PATHS;
   if (!value) return false;
   if (value.length > MAX_REDIRECT_LENGTH) return false;
   if (CONTROL_CHARS.test(value)) return false;
@@ -55,7 +66,7 @@ export function isSafeRedirectPath(value: string | null | undefined): boolean {
   } catch {
     return false; // malformed percent-encoding — reject
   }
-  if (decoded !== value && !isSafeRedirectPath(decoded)) {
+  if (decoded !== value && !isSafeRedirectPath(decoded, options)) {
     return false;
   }
 
@@ -71,7 +82,7 @@ export function isSafeRedirectPath(value: string | null | undefined): boolean {
     // Reject dot-segments: "/../admin" resolves inside the origin but is
     // never an intended destination.
     if (pathOnly.split('/').some((s) => s === '.' || s === '..')) return false;
-    return !BLOCKED_PATHS.has(pathOnly.toLowerCase());
+    return !blockedPaths.has(pathOnly.toLowerCase());
   }
 
   // Relative forms: "checkout", "checkout/success" — no leading slash, no
@@ -79,7 +90,7 @@ export function isSafeRedirectPath(value: string | null | undefined): boolean {
   if (/^[a-z0-9][a-z0-9-_./]*$/i.test(decoded)) {
     const segments = decoded.toLowerCase().split('/');
     if (segments.some((s) => s === '..' || s === '.')) return false;
-    return !BLOCKED_PATHS.has(`/${segments[0]}`);
+    return !blockedPaths.has(`/${segments[0]}`);
   }
 
   return false;
@@ -94,4 +105,18 @@ export function safeRedirectPath(
   fallback: string
 ): string {
   return isSafeRedirectPath(value) ? (value as string) : fallback;
+}
+
+/**
+ * Auth-callback `?next=` validation helper.
+ *
+ * The PKCE auth callback legitimately receives `?next=/reset-password` for the
+ * password-recovery flow, so this thin wrapper enables the mid-flow-only
+ * allowlist. It is a pure function kept in this library (NOT in the route
+ * module) so it is unit-testable without importing a Next.js route module.
+ */
+export function getSafeNext(value: string | null): string | null {
+  return isSafeRedirectPath(value, { allowMidFlowOnly: true })
+    ? value
+    : null;
 }

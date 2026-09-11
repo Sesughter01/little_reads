@@ -39,23 +39,91 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+const TEST_KEY_ENV = {
+  PAYSTACK_SECRET_KEY: 'sk_test_abc123def456',
+  NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: 'pk_test_abc123def456',
+};
+
+const LIVE_KEY_ENV = {
+  PAYSTACK_SECRET_KEY: 'sk_live_abc123def456',
+  NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: 'pk_live_abc123def456',
+};
+
 describe('Callback origin construction', () => {
   it('uses the canonical production URL for a production request', () => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', LIVE_KEY_ENV.PAYSTACK_SECRET_KEY);
+    vi.stubEnv(
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY',
+      LIVE_KEY_ENV.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    );
     const origin = resolveCallbackOrigin(fakeRequest('littlereads.com.ng'));
     expect(origin).toBe(CANONICAL_SITE_ORIGIN);
   });
 
-  it('does not let a Vercel Preview deployment override the canonical callback', () => {
+  it('keeps LIVE-mode callbacks pinned to production even on a preview host', () => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', LIVE_KEY_ENV.PAYSTACK_SECRET_KEY);
+    vi.stubEnv(
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY',
+      LIVE_KEY_ENV.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    );
     const origin = resolveCallbackOrigin(
       fakeRequest('little-reads-3o3a2ud48-sesughter01s-projects.vercel.app')
     );
     expect(origin).toBe(CANONICAL_SITE_ORIGIN);
   });
 
+  it('routes TEST-mode preview checkouts back to the preview deployment origin', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', TEST_KEY_ENV.PAYSTACK_SECRET_KEY);
+    vi.stubEnv(
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY',
+      TEST_KEY_ENV.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    );
+    const origin = resolveCallbackOrigin(fakeRequest('little-reads.vercel.app'));
+    expect(origin).toBe('https://little-reads.vercel.app');
+  });
+
+  it('honors an explicitly forwarded http proto for TEST-mode preview returns', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', TEST_KEY_ENV.PAYSTACK_SECRET_KEY);
+    vi.stubEnv(
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY',
+      TEST_KEY_ENV.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    );
+    const origin = resolveCallbackOrigin(
+      fakeRequest('little-reads.vercel.app', 'http')
+    );
+    expect(origin).toBe('http://little-reads.vercel.app');
+  });
+
+  it('fails closed to the canonical origin when keys are missing (no env)', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', '');
+    vi.stubEnv('NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY', '');
+    const origin = resolveCallbackOrigin(fakeRequest('little-reads.vercel.app'));
+    expect(origin).toBe(CANONICAL_SITE_ORIGIN);
+  });
+
+  it('fails closed to the canonical origin when keys are placeholders', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', 'sk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+    vi.stubEnv(
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY',
+      'pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+    );
+    const origin = resolveCallbackOrigin(fakeRequest('little-reads.vercel.app'));
+    expect(origin).toBe(CANONICAL_SITE_ORIGIN);
+  });
+
   it('keeps localhost callbacks working in development (http proto)', () => {
     vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', TEST_KEY_ENV.PAYSTACK_SECRET_KEY);
+    vi.stubEnv(
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY',
+      TEST_KEY_ENV.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    );
     expect(
       resolveCallbackOrigin(fakeRequest('localhost:3000', 'http'))
     ).toBe('http://localhost:3000');
@@ -63,6 +131,11 @@ describe('Callback origin construction', () => {
 
   it('supports HTTPS loopback when explicitly forwarded during development', () => {
     vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', TEST_KEY_ENV.PAYSTACK_SECRET_KEY);
+    vi.stubEnv(
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY',
+      TEST_KEY_ENV.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    );
     expect(
       resolveCallbackOrigin(fakeRequest('localhost:3000', 'https'))
     ).toBe('https://localhost:3000');
@@ -77,6 +150,11 @@ describe('Callback origin construction', () => {
 
   it('ignores a stale NEXT_PUBLIC_SITE_URL in production', () => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', LIVE_KEY_ENV.PAYSTACK_SECRET_KEY);
+    vi.stubEnv(
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY',
+      LIVE_KEY_ENV.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    );
     vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://upskiiltech.com');
     const origin = resolveCallbackOrigin(fakeRequest('evil.example.com'));
     expect(origin).toBe(CANONICAL_SITE_ORIGIN);
@@ -84,6 +162,11 @@ describe('Callback origin construction', () => {
 
   it('ignores Vercel URL environment variables', () => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', LIVE_KEY_ENV.PAYSTACK_SECRET_KEY);
+    vi.stubEnv(
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY',
+      LIVE_KEY_ENV.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    );
     vi.stubEnv('VERCEL_URL', 'random-preview.vercel.app');
     vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'old-project.vercel.app');
     expect(resolveCallbackOrigin(fakeRequest('random-preview.vercel.app'))).toBe(
@@ -93,12 +176,33 @@ describe('Callback origin construction', () => {
 
   it('builds the full success-page callback URL with the reference', () => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', LIVE_KEY_ENV.PAYSTACK_SECRET_KEY);
+    vi.stubEnv(
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY',
+      LIVE_KEY_ENV.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    );
     const url = buildCheckoutCallbackUrl(
       fakeRequest('little-reads.vercel.app'),
       'LR-ABC123'
     );
     expect(url).toBe(
       'https://littlereads.com.ng/checkout/success?ref=LR-ABC123'
+    );
+  });
+
+  it('builds a TEST-mode preview callback URL on the preview deployment', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('PAYSTACK_SECRET_KEY', TEST_KEY_ENV.PAYSTACK_SECRET_KEY);
+    vi.stubEnv(
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY',
+      TEST_KEY_ENV.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    );
+    const url = buildCheckoutCallbackUrl(
+      fakeRequest('little-reads.vercel.app'),
+      'LR-ABC123'
+    );
+    expect(url).toBe(
+      'https://little-reads.vercel.app/checkout/success?ref=LR-ABC123'
     );
   });
 

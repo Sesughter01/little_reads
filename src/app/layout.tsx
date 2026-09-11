@@ -2,6 +2,16 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 
+// Dynamic rendering app-wide. Next.js 16's static prerender of pages outside
+// this app's established force-dynamic convention (e.g. /admin/login,
+// /checkout/failed, content pages) crashes with "InvariantError: Expected
+// workStore to be initialized" during metadata resolution — an open Next.js
+// bug that reproduces even on a fresh create-next-app (vercel/next.js
+// #87719, #85251). Every data page here is already force-dynamic and every
+// route is session/cart-driven, so nothing loses static optimization it
+// actually used. Revisit once the framework bug is fixed.
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: {
     default: 'LittleReads - Big Adventures for Little Readers',

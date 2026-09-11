@@ -83,6 +83,14 @@ export default function RegisterClient() {
       // Email verification is enabled — send the user to /verify-email so they
       // can confirm their address before signing in.
       sessionStorage.setItem('littlereads_pending_email', email);
+      // Carry the intended destination (e.g. /checkout from the middleware
+      // redirect) through the verification → sign-in chain so the customer
+      // lands back at checkout after verifying + logging in.
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = safeRedirectPath(params.get('redirect'), '');
+      if (redirectTo) {
+        sessionStorage.setItem('littlereads_pending_redirect', redirectTo);
+      }
       toast.success('Account created! Please check your email to verify your account.');
       router.push('/verify-email');
     }
@@ -156,14 +164,14 @@ export default function RegisterClient() {
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input pl-10"
                   placeholder="••••••••"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">Minimum 6 characters</p>
+              <p className="text-xs text-gray-400 mt-1">Minimum 8 characters</p>
             </div>
 
             <button

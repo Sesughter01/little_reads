@@ -1,9 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 
-const supabaseUrl = 'https://ulplkgswaxalclaynncf.supabase.co';
+// Project URL and service key come from the environment — never hardcoded.
+// (.env.local is read directly so this can run without shell env sourcing.)
 const envContent = fs.readFileSync('.env.local', 'utf8');
-const serviceKey = envContent.split('\n').find(l => l.startsWith('SUPABASE_SERVICE_ROLE_KEY='))!.split('=').slice(1).join('=');
+function envValue(name: string): string {
+  const line = envContent
+    .split('\n')
+    .find((l) => l.startsWith(`${name}=`));
+  if (!line) {
+    console.error(`Missing ${name} in .env.local`);
+    process.exit(1);
+  }
+  return line.split('=').slice(1).join('=').trim();
+}
+
+const supabaseUrl = envValue('NEXT_PUBLIC_SUPABASE_URL');
+const serviceKey = envValue('SUPABASE_SERVICE_ROLE_KEY');
 const supabase = createClient(supabaseUrl, serviceKey);
 
 const demoUserId = '66a94ef5-46ae-47b1-a37c-8cec10f06318';

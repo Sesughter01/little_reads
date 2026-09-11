@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdminApi } from '@/lib/auth';
+import { sanitizeSearchTerm } from '@/lib/search-sanitize';
 
 /**
  * GET /api/admin/search?q=<query>
@@ -20,7 +21,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const q = (searchParams.get('q') || '').trim();
+    // Sanitize before interpolation into PostgREST .or() filter strings —
+    // commas/parens in the raw query would inject filter conditions.
+    const q = sanitizeSearchTerm(searchParams.get('q'));
 
     if (q.length < MIN_QUERY_LENGTH) {
       return NextResponse.json(

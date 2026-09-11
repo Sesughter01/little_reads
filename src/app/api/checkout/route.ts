@@ -7,6 +7,10 @@ import {
   isPaystackConfigured,
 } from '@/lib/paystack';
 import { buildCheckoutCallbackUrl } from '@/lib/checkout-callback';
+import {
+  checkRateLimit,
+  tooManyRequestsResponse,
+} from '@/lib/api-rate-limit';
 import { z } from 'zod';
 
 /**
@@ -34,7 +38,15 @@ const checkoutSchema = z.object({
     )
     .min(1)
     .max(20), // Max 20 items per order
-});
+}).refine(
+  // Duplicate product ids are deduped server-side, but rejecting them here
+  // gives a clear 400 instead of silently charging for a shorter cart.
+  (data) => {
+    const ids = data.items.map((item) => item.product_id);
+    return new Set(ids).size === ids.length;
+  },
+  { message: 'Duplicate items in cart', path: ['items'] }
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,6 +74,13 @@ export async function POST(request: NextRequest) {
         { error: 'Sign in to continue checkout.' },
         { status: 401 }
       );
+    }
+
+    // Throttle checkout attempts per account: creates Paystack transactions
+    // and pending orders, both of which are costly to spam.
+    const limit = checkRateLimit(`checkout:${authUser.id}`, 10, 10 * 60_000);
+    if (!limit.allowed) {
+      return tooManyRequestsResponse(limit);
     }
 
     const { customer_name, customer_email, phone, items } = parsed.data;
@@ -193,9 +212,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Paystack transaction. Production and Preview deployments both
-    // return to the canonical Little Reads domain; only local development may
-    // use the incoming loopback origin.
+    // Initialize Paystack transaction. Routing follows the configured key
+    // mode: LIVE keys (production) always return to the canonical Little Reads
+    // domain; TEST keys return to the origin serving this request (a Vercel
+    // Preview alias in preview, the loopback host in local development).
     const callback_url = buildCheckoutCallbackUrl(request.headers, paystack_reference);
 
     const paystackResponse = await initializePaystackTransaction({

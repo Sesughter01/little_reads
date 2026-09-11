@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
+import {
+  checkRateLimit,
+  tooManyRequestsResponse,
+} from '@/lib/api-rate-limit';
 import { z } from 'zod';
 
 const reviewSchema = z.object({
@@ -11,7 +15,8 @@ const reviewSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Malformed JSON is a client error (400), not a server fault (500).
+    const body = await request.json().catch(() => null);
     const parsed = reviewSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -36,6 +41,12 @@ export async function POST(request: NextRequest) {
         { error: 'Authentication required' },
         { status: 401 }
       );
+    }
+
+    // Throttle review submissions per account (spam/moderation-load guard).
+    const limit = checkRateLimit(`reviews:${user.id}`, 5, 10 * 60_000);
+    if (!limit.allowed) {
+      return tooManyRequestsResponse(limit);
     }
 
     // Verify product exists and is published
@@ -76,7 +87,12 @@ export async function POST(request: NextRequest) {
       .eq('product_id', product_id)
       .single();
 
-    // Insert review (RLS allows authenticated users to insert)
+    // Insert review through the user's own session: RLS enforces
+    // user_id = auth.uid(), status='pending', verified_purchase=false.
+    // verified_purchase is deliberately NEVER set by the client here — it
+    // always starts false and is flipped to true below by the SERVICE ROLE
+    // only when the purchases table proves the purchase, so a customer
+    // cannot self-flag the badge by calling the database directly.
     const { data: review, error: reviewError } = await supabase
       .from('reviews')
       .insert({
@@ -85,7 +101,7 @@ export async function POST(request: NextRequest) {
         rating,
         title: title || null,
         content,
-        verified_purchase: !!purchase,
+        verified_purchase: false,
         status: 'pending',
       })
       .select()
@@ -97,6 +113,31 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to submit review' },
         { status: 500 }
       );
+    }
+
+    // Server-owned verified badge: a REAL purchase was checked above. Flip
+    // the flag via the service role (bypasses the RLS pin; the migration 005
+    // trigger's service-role exemption keeps the write intact). The row is
+    // the one we just created for THIS user — ownership guard included as
+    // defense in depth.
+    if (purchase) {
+      const serviceClient = await createServiceClient();
+      const { error: flagError } = await serviceClient
+        .from('reviews')
+        .update({
+          verified_purchase: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', review.id)
+        .eq('user_id', user.id);
+
+      if (flagError) {
+        // The review still exists and is pending moderation; the badge is a
+        // display refinement, not the entitlement — log and continue.
+        console.error('Error setting verified purchase flag:', {
+          code: flagError.code,
+        });
+      }
     }
 
     return NextResponse.json({

@@ -27,16 +27,29 @@ export default function LoginClient() {
   const authError = params.get('error');
 
   // Destination after sign-in: middleware's ?redirect=... wins, then the
-  // auth callback's ?next=..., then /account. Never navigated raw.
+  // auth callback's ?next=..., then a pending registration destination
+  // stored via sessionStorage (the middleware /register?redirect=/checkout
+  // journey survives email verification), then /account. Never navigated raw.
   const getPostLoginRedirect = (): string => {
     const search =
       typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search)
         : new URLSearchParams();
-    return safeRedirectPath(
-      search.get('redirect') || search.get('next'),
-      '/account'
-    );
+    const fromQuery = search.get('redirect') || search.get('next');
+    if (fromQuery) {
+      return safeRedirectPath(fromQuery, '/account');
+    }
+
+    // Registration with email verification stored the intended destination;
+    // consume it once so a later unrelated sign-in is not redirected.
+    let pending: string | null = null;
+    try {
+      pending = sessionStorage.getItem('littlereads_pending_redirect');
+      if (pending) sessionStorage.removeItem('littlereads_pending_redirect');
+    } catch {
+      pending = null;
+    }
+    return safeRedirectPath(pending, '/account');
   };
 
   const handleLogin = async (e: React.FormEvent) => {

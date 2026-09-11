@@ -4,6 +4,7 @@ import {
   normalizeSiteOrigin,
   parseSingleSiteUrl,
 } from '@/lib/site-url';
+import { getSafeNext } from '@/lib/safe-redirect';
 
 /**
  * Supabase PKCE auth callback.
@@ -26,27 +27,14 @@ import {
  *
  * supabase.auth.updateUser({
  *   password: newPassword,
- * })
+  * })
  */
 
-function getSafeNext(value: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-
-  /**
-   * Only allow internal application paths.
-   *
-   * Prevent:
-   * ?next=https://malicious-site.com
-   * ?next=//malicious-site.com
+/**
+ * Auth-callback ?next= validation is handled by getSafeNext in
+ * src/lib/safe-redirect.ts — kept out of this route module so the route
+ * file only exports supported Next.js route handlers (GET).
    */
-  if (!value.startsWith('/') || value.startsWith('//')) {
-    return null;
-  }
-
-  return value;
-}
 
 function getSiteOrigin(requestUrl: URL): string {
   /**
