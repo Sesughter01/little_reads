@@ -49,19 +49,21 @@
 -- ============================================
 
 -- Public reviewer identity view: id / first_name / last_name / avatar_url
--- ONLY. Runs with the DEFINER's (migration role's) privileges — this is why
--- public reviewer names keep working for anonymous callers after direct
--- anon SELECT on profiles is revoked below. Column hiding comes from the
--- explicit SELECT list: email/phone/role are NOT columns of this view and
--- cannot be read through it under any privilege.
+-- ONLY. A plain CREATE VIEW already runs with the DEFINER's (view owner /
+-- migration role's) privileges — views are definer-semantics by DEFAULT and
+-- PostgreSQL has NO explicit `security_definer` view option (that spelling
+-- fails with SQLSTATE 22023). This is why public reviewer names keep
+-- working for anonymous callers after direct anon SELECT on profiles is
+-- revoked below. Column hiding comes from the explicit SELECT list:
+-- email/phone/role are NOT columns of this view and cannot be read through
+-- it under any privilege.
 --
 -- The view is deliberately narrowed to users who have had at least one
 -- review APPROVED — the only case where a display name/avatar is needed
 -- publicly. Approved reviews embed reviewer identity through this view
 -- (src/lib/db.ts getProductReviews), so public review pages keep working
 -- for anonymous visitors.
-CREATE OR REPLACE VIEW public_profiles_public
-WITH (security_definer = true) AS
+CREATE OR REPLACE VIEW public.public_profiles_public AS
 SELECT
   p.id,
   p.first_name,
