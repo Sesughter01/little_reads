@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   Search,
+  Store,
 } from 'lucide-react';
 import { AdminSearch } from './admin-search';
 import { LittleReadsIcon } from '@/components/brand/littlereads-icon';
@@ -31,6 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/categories', label: 'Categories', icon: Tag },
     { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
     { href: '/admin/customers', label: 'Customers', icon: Users },
+    { href: '/admin/sellers', label: 'Sellers', icon: Store },
     { href: '/admin/reviews', label: 'Reviews', icon: Star },
     { href: '/admin/messages', label: 'Messages', icon: Mail },
     { href: '/admin/newsletter', label: 'Newsletter', icon: Megaphone },

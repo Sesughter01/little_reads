@@ -13,6 +13,19 @@ import toast from 'react-hot-toast';
 export default function LoginClient() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Login INTENT only — display routing hint. Never alters authorization;
+  // the server-side seller profile is authoritative (see /api/seller/access).
+  // Pre-selected when a seller signup survived email verification.
+  const [intent, setIntent] = useState<'buyer' | 'seller'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        if (sessionStorage.getItem('littlereads_signup_intent') === 'seller') return 'seller';
+      } catch {
+        // storage unavailable
+      }
+    }
+    return 'buyer';
+  });
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const submitGuard = useClickGuard();
@@ -86,6 +99,47 @@ export default function LoginClient() {
 
     toast.success('Welcome back!');
 
+    // SELLER intent: resolve the authoritative server-side seller state and
+    // route accordingly (dashboard / onboarding / pending / status). The
+    // intent NEVER grants access — the API derives state from the session.
+    // BUYER intent (or an explicit ?redirect=…): preserve existing behavior
+    // so /checkout and /checkout/success?ref=… recovery keeps working.
+    const searchNow =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search)
+        : new URLSearchParams();
+    const explicitRedirect = searchNow.get('redirect') || searchNow.get('next');
+    if (intent === 'seller' && !explicitRedirect) {
+      try {
+        try {
+          sessionStorage.removeItem('littlereads_pending_redirect');
+          sessionStorage.removeItem('littlereads_signup_intent');
+        } catch {
+          // storage unavailable — continue
+        }
+        const res = await fetch('/api/seller/access');
+        if (res.ok) {
+          const data = (await res.json()) as { state?: string };
+          const { sellerPostLoginDestination } = await import('@/lib/seller-routing');
+          router.push(
+            sellerPostLoginDestination(
+              (data.state ?? 'no-profile') as
+                | 'anonymous'
+                | 'no-profile'
+                | 'pending'
+                | 'rejected'
+                | 'suspended'
+                | 'approved'
+            )
+          );
+          router.refresh();
+          return;
+        }
+      } catch {
+        // Access lookup failed — fall through to the normal buyer flow.
+      }
+    }
+
     router.push(getPostLoginRedirect());
     router.refresh();
   };
@@ -129,6 +183,39 @@ export default function LoginClient() {
             </p>
           </div>
         )}
+
+        {/* Intent selector — routing hint only, never authorization.
+            No Admin option is exposed: admins are recognized server-side. */}
+        <div className="mb-5">
+          <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Sign in as">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={intent === 'buyer'}
+              onClick={() => setIntent('buyer')}
+              className={`rounded-2xl border-2 px-4 py-3 text-sm font-semibold transition-all ${
+                intent === 'buyer'
+                  ? 'border-brand-purple bg-brand-purple/5 text-gray-900'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+              }`}
+            >
+              Buyer
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={intent === 'seller'}
+              onClick={() => setIntent('seller')}
+              className={`rounded-2xl border-2 px-4 py-3 text-sm font-semibold transition-all ${
+                intent === 'seller'
+                  ? 'border-brand-orange bg-brand-orange/5 text-gray-900'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+              }`}
+            >
+              Seller
+            </button>
+          </div>
+        </div>
 
         {/* Password-only sign-in (email-OTP entry point disabled for now;
             the dormant verify-otp route self-guards back to /login). */}

@@ -1,5 +1,6 @@
 import { Header } from './header';
 import { Footer } from './footer';
+import { AnnouncementBar } from './announcement-bar';
 
 /**
  * Public storefront shell: one Header, one <main>, one Footer.
@@ -9,6 +10,7 @@ import { Footer } from './footer';
 export function StoreShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
+      <AnnouncementBar />
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />

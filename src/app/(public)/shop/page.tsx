@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import { Star, BookOpen, SearchX } from 'lucide-react';
 import { ShopFilters } from '@/components/product/shop-filters';
+import LocalizedPrice from '@/components/product/localized-price';
 import { formatPrice, getAgeRangeText } from '@/lib/utils';
+import { getPriceDisplay } from '@/lib/price-display';
 import { AddToCartButton } from '@/components/cart/add-to-cart-button';
+import { getSessionUserId } from '@/lib/seller';
 import type { Product } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +42,15 @@ async function safeGetCategories() {
   }
 }
 
-function BookCard({ product }: { product: Product }) {
+function BookCard({
+  product,
+  priceDisplay,
+  sessionUserId = null,
+}: {
+  product: Product;
+  priceDisplay?: { currency: string; rates: { rates: Record<string, number> } | null } | null;
+  sessionUserId?: string | null;
+}) {
   return (
     <div className="rounded-2xl bg-white p-0 shadow-sm transition-all hover:shadow-md overflow-hidden">
       <Link href={`/books/${product.slug}`} className="block">
@@ -75,8 +86,15 @@ function BookCard({ product }: { product: Product }) {
           </div>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-gray-900">{formatPrice(product.sale_price || product.price)}</span>
-          <AddToCartButton product={product} size="sm" />
+          <span className="font-semibold text-gray-900">
+            <LocalizedPrice
+              amountNgn={product.sale_price || product.price}
+              rates={priceDisplay?.rates?.rates}
+              currency={priceDisplay?.currency}
+              className="text-lg font-bold text-gray-900"
+            />
+          </span>
+          <AddToCartButton product={product} size="sm" sessionUserId={sessionUserId} />
         </div>
       </div>
     </div>
@@ -115,6 +133,13 @@ export default async function ShopPage({
 
   const categories = await safeGetCategories();
 
+  // Session user for the UI own-book guard (Layer 1). The server checkout
+  // API enforces the rule authoritatively.
+  const sessionUserId = await getSessionUserId();
+
+  // Display-only currency/rates for the current request (NGN fallback).
+  const priceDisplay = await getPriceDisplay();
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
@@ -139,7 +164,7 @@ export default async function ShopPage({
           {products.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {products.map((product) => (
-                <BookCard key={product.id} product={product} />
+                <BookCard key={product.id} product={product} priceDisplay={priceDisplay} sessionUserId={sessionUserId} />
               ))}
             </div>
           ) : (

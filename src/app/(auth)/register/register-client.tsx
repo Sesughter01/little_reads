@@ -8,7 +8,7 @@ import { safeRedirectPath } from '@/lib/safe-redirect';
 import { getEnvSiteOrigin } from '@/lib/site-url';
 import { useClickGuard } from '@/lib/click-guard';
 import { isRateLimitError, useRateLimitCooldown } from '@/lib/rate-limit';
-import { BookOpen, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { BookOpen, Mail, Lock, User, ArrowRight, Store } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function RegisterClient() {
@@ -16,6 +16,9 @@ export default function RegisterClient() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Signup INTENT only — display routing hint. Never written as a role;
+  // seller privileges are granted exclusively by admin approval (007).
+  const [intent, setIntent] = useState<'buyer' | 'seller'>('buyer');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const submitGuard = useClickGuard();
@@ -77,12 +80,31 @@ export default function RegisterClient() {
       toast.success('Account created! Welcome to LittleReads.');
       const params = new URLSearchParams(window.location.search);
       const redirectTo = safeRedirectPath(params.get('redirect'), '/account');
-      router.push(redirectTo);
+      // Seller INTENT routes to onboarding (which creates a PENDING
+      // application). Intent never grants privileges — approval is
+      // admin-only (Migration 007). Preserve /checkout recovery for buyers.
+      if (intent === 'seller') {
+        router.push('/seller/onboarding');
+      } else {
+        router.push(redirectTo);
+      }
       router.refresh();
     } else {
       // Email verification is enabled — send the user to /verify-email so they
       // can confirm their address before signing in.
       sessionStorage.setItem('littlereads_pending_email', email);
+      // Persist the signup intent through the verification → sign-in chain so
+      // a seller lands on onboarding after verifying. Intent is a routing
+      // hint only — it never grants seller privileges.
+      try {
+        if (intent === 'seller') {
+          sessionStorage.setItem('littlereads_signup_intent', 'seller');
+        } else {
+          sessionStorage.removeItem('littlereads_signup_intent');
+        }
+      } catch {
+        // storage unavailable — verification still works, intent defaults buyer
+      }
       // Carry the intended destination (e.g. /checkout from the middleware
       // redirect) through the verification → sign-in chain so the customer
       // lands back at checkout after verifying + logging in.
@@ -109,6 +131,57 @@ export default function RegisterClient() {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 mt-6">Create Account</h1>
           <p className="text-gray-500 mt-2">Join LittleReads today</p>
+        </div>
+
+        {/* Intent selector — routing hint only, never authorization */}
+        <div className="mb-5">
+          <p className="label mb-2">How would you like to use LittleReads?</p>
+          <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Account type">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={intent === 'buyer'}
+              onClick={() => setIntent('buyer')}
+              className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                intent === 'buyer'
+                  ? 'border-brand-purple bg-brand-purple/5'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <span className="flex items-center gap-2 font-semibold text-gray-900 text-sm">
+                <BookOpen className="h-5 w-5 text-brand-purple" />
+                Buy Books
+              </span>
+              <span className="mt-1 block text-xs text-gray-500">
+                Discover and purchase children&apos;s books.
+              </span>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={intent === 'seller'}
+              onClick={() => setIntent('seller')}
+              className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                intent === 'seller'
+                  ? 'border-brand-orange bg-brand-orange/5'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <span className="flex items-center gap-2 font-semibold text-gray-900 text-sm">
+                <Store className="h-5 w-5 text-brand-orange" />
+                Sell Books
+              </span>
+              <span className="mt-1 block text-xs text-gray-500">
+                Publish and sell children&apos;s books on LittleReads.
+              </span>
+            </button>
+          </div>
+          {intent === 'seller' && (
+            <p className="mt-2 text-xs text-gray-500">
+              After verifying your email you&apos;ll complete a short seller application.
+              Applications are reviewed before selling is enabled.
+            </p>
+          )}
         </div>
 
         {/* Form */}

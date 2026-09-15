@@ -1,0 +1,91 @@
+import Link from 'next/link';
+import { getSellerAccess } from '@/lib/seller';
+import { SELLER_STATUS_LABELS } from '@/lib/seller-routing';
+import { Info, ArrowRight } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
+
+/**
+ * /seller/status — display-only seller application status.
+ * Reads the authoritative server session; never grants access itself.
+ */
+export default async function SellerStatusPage() {
+  const access = await getSellerAccess();
+
+  const copy: Record<string, { title: string; body: string }> = {
+    anonymous: {
+      title: 'Sign in to view your seller status',
+      body: 'Seller applications are tied to your LittleReads account. Sign in first, then return here.',
+    },
+    'no-profile': {
+      title: 'You have not applied to sell yet',
+      body: 'Start a short application and an admin will review it. Selling is enabled after approval.',
+    },
+    pending: {
+      title: 'Your seller application is under review.',
+      body: 'An admin will review your application. You can keep shopping while you wait.',
+    },
+    rejected: {
+      title: 'Your seller application was not approved',
+      body: 'You can update your details and apply again, or contact support for more information.',
+    },
+    suspended: {
+      title: 'Your seller account is suspended',
+      body: 'Selling is currently disabled on your account. Contact support if you believe this is a mistake.',
+    },
+    approved: {
+      title: 'Your seller account is active',
+      body: 'Your application was approved — open your Seller dashboard to manage books and sales.',
+    },
+  };
+
+  const state = access.state;
+  const text = copy[state];
+  const statusLabel =
+    state === 'pending' ||
+    state === 'rejected' ||
+    state === 'suspended' ||
+    state === 'approved'
+      ? SELLER_STATUS_LABELS[access.profile.status]
+      : null;
+
+  return (
+    <div className="mx-auto w-full max-w-xl px-4 py-16 text-center">
+      <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-purple/10">
+        <Info className="h-7 w-7 text-brand-purple" />
+      </span>
+      <h1 className="text-2xl font-bold text-gray-900">{text.title}</h1>
+      {statusLabel && (
+        <p className="mt-2 inline-block rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
+          Status: {statusLabel}
+        </p>
+      )}
+      <p className="mt-3 text-sm leading-relaxed text-gray-500">{text.body}</p>
+      <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+        {state === 'anonymous' && (
+          <Link href="/login?redirect=/seller/status" className="btn-primary">
+            Sign In
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        )}
+        {state === 'no-profile' && (
+          <Link href="/seller/onboarding" className="btn-primary">
+            Apply to Sell
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        )}
+        {state === 'approved' && (
+          <Link href="/seller" className="btn-primary">
+            Open Seller Dashboard
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        )}
+        {(state === 'rejected' || state === 'pending' || state === 'suspended') && (
+          <Link href="/shop" className="btn-secondary">
+            Browse Books
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -40,6 +40,13 @@ export interface Product {
   category_id: string;
   featured: boolean;
   published: boolean;
+  /** NULL = LittleReads/platform-owned book. Otherwise the owning seller's user id.
+   *  Optional: rows created before Migration 007 have no value until the
+   *  column exists. Server code reads/casts this defensively. */
+  seller_id?: string | null;
+  /** Seller/editorial workflow: draft | submitted | published | rejected | archived.
+   *  Optional for the same pre-007 compatibility reason as seller_id. */
+  workflow_status?: string;
   created_at: string;
   updated_at: string;
   // Joined fields

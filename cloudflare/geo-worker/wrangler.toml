@@ -1,0 +1,17 @@
+# LittleReads Geo Worker — TEMPLATE ONLY. Do NOT deploy without approval.
+# The application works WITHOUT this worker (server-side headers fallback).
+# No DNS / routes / proxy changes are part of the application code.
+
+name = "littlereads-geo"                # your Cloudflare account-specific name
+main = "src/worker.ts"
+compatibility_date = "2024-11-01"
+
+# The worker is intentionally NOT attached to any domain or route. When you
+# later choose to deploy it, add a route here (e.g. geo.littlereads.com.ng/*)
+# ONLY with explicit approval — do not proxy the main storefront domain.
+# routes = [{ pattern = "geo.example.com/*", zone_name = "example.com" }]
+
+[vars]
+# Optional CORS origin for the worker response. Leave unset to default to
+# the Vercel preview origin listed in the source.
+# ALLOWED_ORIGIN = "https://little-reads.vercel.app"

@@ -87,6 +87,20 @@ export function clientIpFromRequest(request: Request): string {
   return request.headers.get('x-real-ip')?.trim() || 'unknown';
 }
 
+/** Key a request-based limit by client IP so anonymous calls share one bucket. */
+export function apiRateLimit(
+  request: Request,
+  options: { key: string; limit: number; windowMs: number }
+): Response | null {
+  const result = checkRateLimit(
+    `${options.key}:${clientIpFromRequest(request)}`,
+    options.limit,
+    options.windowMs
+  );
+  if (!result.allowed) return tooManyRequestsResponse(result);
+  return null;
+}
+
 /** Build a standard 429 response for a denied request. */
 export function tooManyRequestsResponse(result: RateLimitResult): Response {
   return new Response(

@@ -1,21 +1,27 @@
 'use client';
 
+import Link from 'next/link';
 import { ShoppingCart, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useClickGuard } from '@/lib/click-guard';
+import { canBuyProduct } from '@/lib/seller-routing';
 import type { Product } from '@/types';
 
 export function AddToCartButton({
   product,
   size = 'md',
+  sessionUserId = null,
 }: {
   product: Product;
   size?: 'sm' | 'md';
+  sessionUserId?: string | null;
 }) {
   const [isInCart, setIsInCart] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const guard = useClickGuard();
+
+  const ownBook = !canBuyProduct(sessionUserId, product.seller_id ?? null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- one-time check of cart membership in localStorage on mount */
   useEffect(() => {
@@ -23,6 +29,20 @@ export function AddToCartButton({
     setIsInCart(cart.some((item: { id: string }) => item.id === product.id));
   }, [product.id]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Layer 1 — UI: sellers cannot add their own books to the cart.
+  if (ownBook) {
+    return (
+      <Link
+        href={`/seller/books/${product.id}`}
+        className={`inline-flex items-center gap-1 font-medium ${
+          size === 'sm' ? 'text-xs' : 'text-sm'
+        } rounded-xl px-3 py-2 border border-gray-200 text-gray-600 hover:border-brand-orange hover:text-brand-orange transition-all`}
+      >
+        Your Book
+      </Link>
+    );
+  }
 
   const handleAddToCart = async () => {
     if (!guard.claim()) return; // rapid repeated clicks

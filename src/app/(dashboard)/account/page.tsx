@@ -4,10 +4,24 @@ import { createClient } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { Library, ShoppingBag, Star, Heart } from 'lucide-react';
+import { getSellerAccess } from '@/lib/seller';
+import { sellerEntryHref } from '@/lib/seller-routing';
 
 export default async function AccountPage() {
   const { profile } = await requireUser();
   const supabase = await createClient();
+
+  // Author entry point — server-derived, so the account dashboard links to
+  // the exact seller destination (onboarding / pending / status / dashboard)
+  // with zero client-side fetching.
+  const sellerAccess = await getSellerAccess();
+  const sellerHref = sellerEntryHref(sellerAccess.state);
+  const sellerCtaLabel =
+    sellerAccess.state === 'approved'
+      ? 'Author Dashboard'
+      : sellerAccess.state === 'no-profile'
+        ? 'Become an Author'
+        : 'Author Application Status';
 
   const [{ count: purchasesCount }, { count: ordersCount }, { count: reviewsCount }, { count: wishlistCount }] = await Promise.all([
     supabase.from('purchases').select('*', { count: 'exact', head: true }).eq('user_id', profile.id),
@@ -50,6 +64,9 @@ export default async function AccountPage() {
         <div className="flex flex-wrap gap-3">
           <Link href="/shop" className="btn-primary">Browse Books</Link>
           <Link href="/account/library" className="btn-secondary">My Library</Link>
+          <Link href={sellerHref} className="btn-secondary">
+            {sellerCtaLabel}
+          </Link>
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { LittleReadsIcon } from '@/components/brand/littlereads-icon';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useClickGuard } from '@/lib/click-guard';
+import { useSellerEntry } from '@/components/seller/become-author';
 import {
   ShoppingCart,
   Search,
@@ -25,6 +26,7 @@ import {
   Star,
   ChevronRight,
   SearchX,
+  Store,
 } from 'lucide-react';
 import type { Profile } from '@/types';
 
@@ -38,6 +40,9 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const signOutGuard = useClickGuard();
+  // "Become an Author" entry point — routing hint derived from the shared
+  // memoized /api/seller/access fetch (never authorization itself).
+  const { href: sellerHref, label: sellerLabel } = useSellerEntry();
 
   // Auth listener
   useEffect(() => {
@@ -200,6 +205,15 @@ export function Header() {
               >
                 <Search className="h-5 w-5" />
               </button>
+
+              {/* Author entry point */}
+              <Link
+                href={sellerHref}
+                className="hidden xl:inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-brand-purple hover:bg-brand-purple/5 rounded-xl transition-colors"
+              >
+                <Store className="h-4 w-4" />
+                {sellerLabel}
+              </Link>
 
               {/* Wishlist */}
               <Link
@@ -492,6 +506,15 @@ export function Header() {
                         </Link>
                       );
                     })}
+                    <Link
+                      href={sellerHref}
+                      onClick={() => setIsDrawerOpen(false)}
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-brand-purple hover:bg-brand-purple/5 transition-colors"
+                    >
+                      <Store className="h-5 w-5 shrink-0" />
+                      {sellerLabel}
+                    </Link>
+
                     {user.role === 'admin' && (
                       <Link
                         href="/admin"
@@ -525,6 +548,14 @@ export function Header() {
                       className="btn-secondary w-full text-center"
                     >
                       Create Account
+                    </Link>
+                    <Link
+                      href="/register?intent=seller"
+                      onClick={() => setIsDrawerOpen(false)}
+                      className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm font-medium text-brand-purple hover:bg-brand-purple/5 rounded-xl transition-colors"
+                    >
+                      <Store className="h-4 w-4" />
+                      Become an Author
                     </Link>
                   </div>
                 )}
