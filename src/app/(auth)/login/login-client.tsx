@@ -1,31 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { safeRedirectPath } from '@/lib/safe-redirect';
+import {
+  clearStoredAuthIntent,
+  readStoredAuthIntent,
+  resolvePostAuthDestination,
+  storeAuthIntent,
+  type AuthIntent,
+} from '@/lib/auth-intent';
+import { fetchSellerAccessState } from '@/lib/seller-entry';
 import { useClickGuard } from '@/lib/click-guard';
 import { isRateLimitError, useRateLimitCooldown } from '@/lib/rate-limit';
+import AuthIntentSelector from '@/components/auth/intent-selector';
 import { BookOpen, Mail, Lock, ArrowRight, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LoginClient() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  // Login INTENT only — display routing hint. Never alters authorization;
-  // the server-side seller profile is authoritative (see /api/seller/access).
-  // Pre-selected when a seller signup survived email verification.
-  const [intent, setIntent] = useState<'buyer' | 'seller'>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        if (sessionStorage.getItem('littlereads_signup_intent') === 'seller') return 'seller';
-      } catch {
-        // storage unavailable
-      }
-    }
-    return 'buyer';
-  });
+  // Buyer/seller INTENT — a temporary UI hint only (never a role, never sent
+  // to Supabase). It always starts as 'buy' so the server-rendered markup and
+  // the first client render agree (no hydration mismatch); the effect below
+  // then applies ?sell=1 (the "Become an Author" entry point) or a hint stored
+  // earlier in this tab.
+  const [intent, setIntent] = useState<AuthIntent>('buy');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const submitGuard = useClickGuard();
@@ -38,6 +40,20 @@ export default function LoginClient() {
   const verified = params.get('verified') === '1';
   const resetDone = params.get('reset') === '1';
   const authError = params.get('error');
+
+  // Seed the selector from ?sell=1 or a hint stored earlier in this tab — e.g.
+  // arriving here after registering with "Sell Books", or from the "Become an
+  // Author" CTA. Runs after mount so the server render and the first client
+  // render match (no hydration mismatch).
+  useEffect(() => {
+    const sellParam = new URLSearchParams(window.location.search).get('sell') === '1';
+    if (sellParam || readStoredAuthIntent() === 'sell') setIntent('sell');
+  }, []);
+
+  const handleIntentChange = (next: AuthIntent) => {
+    setIntent(next);
+    storeAuthIntent(next);
+  };
 
   // Destination after sign-in: middleware's ?redirect=... wins, then the
   // auth callback's ?next=..., then a pending registration destination
@@ -99,48 +115,35 @@ export default function LoginClient() {
 
     toast.success('Welcome back!');
 
-    // SELLER intent: resolve the authoritative server-side seller state and
-    // route accordingly (dashboard / onboarding / pending / status). The
-    // intent NEVER grants access — the API derives state from the session.
-    // BUYER intent (or an explicit ?redirect=…): preserve existing behavior
-    // so /checkout and /checkout/success?ref=… recovery keeps working.
-    const searchNow =
+    // Destination after sign-in.
+    //   CUSTOMER intent keeps the existing rules exactly: the middleware
+    //   ?redirect=… / callback ?next=… wins, then a destination pending email
+    //   verification, then /account.
+    //   SELLER intent asks the SERVER for the authoritative seller state and
+    //   routes accordingly — the client never decides whether the user is an
+    //   approved seller, and an approved result can only come from
+    //   seller_profiles under RLS. Payment-recovery paths still win.
+    const intentSearch =
       typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search)
         : new URLSearchParams();
-    const explicitRedirect = searchNow.get('redirect') || searchNow.get('next');
-    if (intent === 'seller' && !explicitRedirect) {
-      try {
-        try {
-          sessionStorage.removeItem('littlereads_pending_redirect');
-          sessionStorage.removeItem('littlereads_signup_intent');
-        } catch {
-          // storage unavailable — continue
-        }
-        const res = await fetch('/api/seller/access');
-        if (res.ok) {
-          const data = (await res.json()) as { state?: string };
-          const { sellerPostLoginDestination } = await import('@/lib/seller-routing');
-          router.push(
-            sellerPostLoginDestination(
-              (data.state ?? 'no-profile') as
-                | 'anonymous'
-                | 'no-profile'
-                | 'pending'
-                | 'rejected'
-                | 'suspended'
-                | 'approved'
-            )
-          );
-          router.refresh();
-          return;
-        }
-      } catch {
-        // Access lookup failed — fall through to the normal buyer flow.
-      }
+
+    let destination: string;
+    if (intent === 'sell') {
+      // fresh: the storefront header has already cached 'anonymous' for this
+      // not-yet-signed-in visitor — a stale read would misroute the new session.
+      const sellerState = await fetchSellerAccessState({ fresh: true });
+      destination = resolvePostAuthDestination({
+        intent: 'sell',
+        redirect: intentSearch.get('redirect') || intentSearch.get('next'),
+        sellerState,
+      });
+      clearStoredAuthIntent();
+    } else {
+      destination = getPostLoginRedirect();
     }
 
-    router.push(getPostLoginRedirect());
+    router.push(destination);
     router.refresh();
   };
 
@@ -184,38 +187,15 @@ export default function LoginClient() {
           </div>
         )}
 
-        {/* Intent selector — routing hint only, never authorization.
-            No Admin option is exposed: admins are recognized server-side. */}
-        <div className="mb-5">
-          <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Sign in as">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={intent === 'buyer'}
-              onClick={() => setIntent('buyer')}
-              className={`rounded-2xl border-2 px-4 py-3 text-sm font-semibold transition-all ${
-                intent === 'buyer'
-                  ? 'border-brand-purple bg-brand-purple/5 text-gray-900'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
-              }`}
-            >
-              Buyer
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={intent === 'seller'}
-              onClick={() => setIntent('seller')}
-              className={`rounded-2xl border-2 px-4 py-3 text-sm font-semibold transition-all ${
-                intent === 'seller'
-                  ? 'border-brand-orange bg-brand-orange/5 text-gray-900'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
-              }`}
-            >
-              Seller
-            </button>
-          </div>
-        </div>
+        {/* Single sign-in flow — no separate seller sign-in. Seller status is recognized server-side;
+            admins are recognized server-side and never exposed as a sign-in
+            type. */}
+        <AuthIntentSelector
+          value={intent}
+          onChange={handleIntentChange}
+          disabled={isLoading}
+          idPrefix="login-intent"
+        />
 
         {/* Password-only sign-in (email-OTP entry point disabled for now;
             the dormant verify-otp route self-guards back to /login). */}
@@ -285,11 +265,14 @@ export default function LoginClient() {
 
         <p className="text-center mt-6 text-sm text-gray-500">
           Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-brand-purple font-semibold hover:underline">
+          <Link
+            href={intent === 'sell' ? '/register?sell=1' : '/register'}
+            className="text-brand-purple font-semibold hover:underline"
+          >
             Create one
           </Link>
         </p>
       </div>
     </div>
   );
-}
+}

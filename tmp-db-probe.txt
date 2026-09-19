@@ -1,0 +1,34 @@
+base=https://ulplkgswaxalclaynncf.supabase.co
+keyPresent=true
+PATH: seller_profiles?select=user_id&limit=1
+HTTP: 404
+BODY: {"code":"PGRST205","details":null,"hint":"Perhaps you meant the table 'public.profiles'","message":"Could not find the table 'public.seller_profiles' in the schema cache"}
+---
+PATH: public_sellers?select=user_id&limit=1
+HTTP: 404
+BODY: {"code":"PGRST205","details":null,"hint":"Perhaps you meant the table 'public.public_profiles_public'","message":"Could not find the table 'public.public_sellers' in the schema cache"}
+---
+PATH: products?select=seller_id&limit=1
+HTTP: 400
+BODY: {"code":"42703","details":null,"hint":null,"message":"column products.seller_id does not exist"}
+---
+PATH: products?select=workflow_status&limit=1
+HTTP: 400
+BODY: {"code":"42703","details":null,"hint":null,"message":"column products.workflow_status does not exist"}
+---
+PATH: order_items?select=seller_id&limit=1
+HTTP: 400
+BODY: {"code":"42703","details":null,"hint":null,"message":"column order_items.seller_id does not exist"}
+---
+PATH: public_profiles_public?select=id&limit=1
+HTTP: 200
+BODY: [{"id":"66a94ef5-46ae-47b1-a37c-8cec10f06318"}]
+---
+PATH: profiles?select=id&limit=1
+HTTP: 200
+BODY: [{"id":"b1db7254-0a4d-4992-a7bd-6afebbd1be87"}]
+---
+PATH: products?select=id&limit=1
+HTTP: 200
+BODY: [{"id":"a2853668-7939-4068-a9eb-9ad9d81633c3"}]
+---

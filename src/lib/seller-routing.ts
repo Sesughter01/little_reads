@@ -16,36 +16,6 @@ export type SellerAccessState =
   | 'approved';
 
 /**
- * Where should an already-authenticated user land for a given seller access
- * state? Used by the seller login intent and by /seller pages.
- */
-export function sellerPostLoginDestination(state: SellerAccessState): string {
-  switch (state) {
-    case 'approved':
-      return '/seller';
-    case 'pending':
-      return '/seller/pending';
-    case 'rejected':
-    case 'suspended':
-      return '/seller/status';
-    case 'no-profile':
-      return '/seller/onboarding';
-    case 'anonymous':
-      return '/login?redirect=/seller';
-  }
-}
-
-/** Parse a client-supplied signup/login intent. Anything else → 'buyer'. */
-export function parseSignupIntent(value: unknown): 'buyer' | 'seller' {
-  return value === 'seller' ? 'seller' : 'buyer';
-}
-
-/** Parse a client-supplied login intent. Anything else → 'buyer'. */
-export function parseLoginIntent(value: unknown): 'buyer' | 'seller' {
-  return value === 'seller' ? 'seller' : 'buyer';
-}
-
-/**
  * The sellers-cannot-buy-their-own-books rule as a pure predicate.
  *
  *   productSellerId === null      → platform book, always buyable
@@ -67,13 +37,15 @@ export function canBuyProduct(
  * Where should the "Become an Author" entry-point CTA link for a given access
  * state? Pure routing — no auth, no fetch, unit-testable.
  *
- * Visitors are sent to signup with the seller intent hint (display-only);
- * authenticated users are routed by their authoritative seller profile state.
+ * Visitors are sent to the normal registration flow WITH the temporary seller
+ * intent preselected (`?sell=1` — the same one normal register page, no
+ * separate seller signup); authenticated users are routed by their
+ * authoritative seller profile state.
  */
 export function sellerEntryHref(state: SellerAccessState): string {
   switch (state) {
     case 'anonymous':
-      return '/register?intent=seller';
+      return '/register?sell=1';
     case 'no-profile':
       return '/seller/onboarding';
     case 'pending':

@@ -1,0 +1,55 @@
+﻿        submitGuard.release();
+        return;
+      }
+      if (isRateLimitError(error)) {
+        toast.error('Too many attempts. Please wait a minute and try again.');
+        startCooldown();
+      } else {
+        toast.error(error.message);
+      }
+      setIsLoading(false);
+      submitGuard.release();
+      return;
+    }
+
+    toast.success('Welcome back!');
+
+    // Destination after sign-in.
+    //   CUSTOMER intent keeps the existing rules exactly: the middleware
+    //   ?redirect=â€¦ / callback ?next=â€¦ wins, then a destination pending email
+    //   verification, then /account.
+    //   SELLER intent asks the SERVER for the authoritative seller state and
+    //   routes accordingly â€” the client never decides whether the user is an
+    //   approved seller, and an approved result can only come from
+    //   seller_profiles under RLS. Payment-recovery paths still win.
+    const intentSearch =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search)
+        : new URLSearchParams();
+
+    let destination: string;
+    if (intent === 'sell') {
+      // fresh: the storefront header has already cached 'anonymous' for this
+      // not-yet-signed-in visitor â€” a stale read would misroute the new session.
+      const sellerState = await fetchSellerAccessState({ fresh: true });
+      destination = resolvePostAuthDestination({
+        intent: 'sell',
+        redirect: intentSearch.get('redirect') || intentSearch.get('next'),
+        sellerState,
+      });
+      clearStoredAuthIntent();
+    } else {
+      destination = getPostLoginRedirect();
+    }
+
+    router.push(destination);
+    router.refresh();
+  };
+
+  return (
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <BookOpen className="h-10 w-10 text-brand-purple" />

@@ -49,11 +49,20 @@ export async function POST(request: NextRequest) {
   }
 
   // Idempotency: existing profile wins; the client cannot change its status.
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from('seller_profiles')
     .select('user_id, display_name, business_name, bio, status')
     .eq('user_id', userId)
     .maybeSingle();
+
+  if (existingError) {
+    // Fail-fast with a full diagnostic log. When migration 007 has not been
+    // applied, for example, this surfaces PGRST205 + the real message
+    // ("Could not find the table 'public.seller_profiles' …") instead of
+    // swallowing the error and falling through to a second failed insert.
+    console.error('seller onboarding: lookup failed:', existingError);
+    return NextResponse.json({ error: 'Unable to submit seller application' }, { status: 500 });
+  }
 
   if (existing) {
     return NextResponse.json({
@@ -81,8 +90,11 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (insertError) {
-    // RLS/unique-constraint failures surface as a generic safe error.
-    console.error('seller onboarding insert failed:', insertError.code);
+    // Log the full error (not just the code) so server operators can see the
+    // actual server-side exception — e.g. PGRST205 "Could not find the table
+    // 'public.seller_profiles'" when migration 007 has not been applied.
+    // The client still receives only a generic message (no internal leakage).
+    console.error('seller onboarding insert failed:', insertError);
     return NextResponse.json({ error: 'Unable to submit seller application' }, { status: 500 });
   }
 

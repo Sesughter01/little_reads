@@ -18,7 +18,18 @@ const VALID_STATES: SellerAccessState[] = [
 
 let cached: Promise<SellerAccessState> | null = null;
 
-export function fetchSellerAccessState(): Promise<SellerAccessState> {
+/**
+ * @param options.fresh — discard any memoized result and re-query the server.
+ *   Required immediately after sign-in/sign-up: the storefront header has
+ *   usually already primed the cache with 'anonymous' for the visitor who was
+ *   not yet authenticated, so a stale read would misroute the new session.
+ */
+export function fetchSellerAccessState(options?: {
+  fresh?: boolean;
+}): Promise<SellerAccessState> {
+  if (options?.fresh) {
+    cached = null;
+  }
   if (!cached) {
     cached = (async () => {
       try {

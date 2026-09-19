@@ -1,0 +1,4 @@
+﻿C:\Users\User\Desktop\children-ebooks-ecommerce\src\components\auth\auth-intent-selector.tsx
+C:\Users\User\Desktop\children-ebooks-ecommerce\src\components\auth\debug.log
+C:\Users\User\Desktop\children-ebooks-ecommerce\src\components\auth\intent-selector.tsx
+C:\Users\User\Desktop\children-ebooks-ecommerce\src\components\auth\sign-out-button.tsx

@@ -550,7 +550,7 @@ export function Header() {
                       Create Account
                     </Link>
                     <Link
-                      href="/register?intent=seller"
+                      href="/register"
                       onClick={() => setIsDrawerOpen(false)}
                       className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm font-medium text-brand-purple hover:bg-brand-purple/5 rounded-xl transition-colors"
                     >

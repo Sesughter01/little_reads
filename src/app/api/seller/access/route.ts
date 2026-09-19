@@ -4,9 +4,11 @@ import { getSellerAccess } from '@/lib/seller';
 /**
  * GET /api/seller/access — current seller access state for the session.
  *
- * Used by the login flow's Seller intent to route the user to the correct
- * page (dashboard / onboarding / pending / status) based on the authoritative
- * server-side seller profile. Returns no private data beyond the status.
+ * Used by the "Become an Author" entry-point CTAs (navbar, drawer, announcement
+ * bar, account page) to route the user to the right page (dashboard /
+ * onboarding / pending / status) based on the authoritative server-side seller
+ * profile. This is a ROUTING HINT only — never authorization. Returns no
+ * private data beyond the status.
  */
 export async function GET(_request: NextRequest) {
   const access = await getSellerAccess();

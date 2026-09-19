@@ -1,75 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  sellerPostLoginDestination,
-  parseSignupIntent,
-  parseLoginIntent,
-  canBuyProduct,
-  sellerEntryHref,
-} from '@/lib/seller-routing';
-
-describe('parseSignupIntent', () => {
-  it('defaults to buyer for missing/unknown values', () => {
-    expect(parseSignupIntent(undefined)).toBe('buyer');
-    expect(parseSignupIntent(null)).toBe('buyer');
-    expect(parseSignupIntent('')).toBe('buyer');
-    expect(parseSignupIntent('buyer')).toBe('buyer');
-    expect(parseSignupIntent('admin')).toBe('buyer');
-    expect(parseSignupIntent('SELLER')).toBe('buyer');
-  });
-
-  it('accepts the seller intent', () => {
-    expect(parseSignupIntent('seller')).toBe('seller');
-  });
-
-  it('intent is display-only: parsing seller never grants privileges', () => {
-    // The parsed value is a UI routing hint only. No role, status, or
-    // seller_profiles row is created by this function — that decision lives
-    // server-side in /api/seller/onboarding + the 007 trigger.
-    const intent = parseSignupIntent('seller');
-    expect(intent).toBe('seller');
-    expect(typeof intent).toBe('string');
-  });
-});
-
-describe('parseLoginIntent', () => {
-  it('defaults to buyer for missing/unknown values', () => {
-    expect(parseLoginIntent(undefined)).toBe('buyer');
-    expect(parseLoginIntent('admin')).toBe('buyer');
-    expect(parseLoginIntent('')).toBe('buyer');
-  });
-
-  it('accepts the seller intent', () => {
-    expect(parseLoginIntent('seller')).toBe('seller');
-  });
-
-  it('never exposes admin as a login type', () => {
-    expect(parseLoginIntent('admin')).not.toBe('admin');
-    expect(['buyer', 'seller']).toContain(parseLoginIntent('admin'));
-  });
-});
-
-describe('sellerPostLoginDestination', () => {
-  it('routes approved sellers to the dashboard', () => {
-    expect(sellerPostLoginDestination('approved')).toBe('/seller');
-  });
-
-  it('routes pending sellers to the pending page', () => {
-    expect(sellerPostLoginDestination('pending')).toBe('/seller/pending');
-  });
-
-  it('routes rejected/suspended sellers to the status page', () => {
-    expect(sellerPostLoginDestination('rejected')).toBe('/seller/status');
-    expect(sellerPostLoginDestination('suspended')).toBe('/seller/status');
-  });
-
-  it('routes users without a seller profile to onboarding', () => {
-    expect(sellerPostLoginDestination('no-profile')).toBe('/seller/onboarding');
-  });
-
-  it('routes anonymous sessions back through login', () => {
-    expect(sellerPostLoginDestination('anonymous')).toBe('/login?redirect=/seller');
-  });
-});
+import { canBuyProduct, sellerEntryHref } from '@/lib/seller-routing';
 
 describe('canBuyProduct (sellers cannot buy their own books)', () => {
   it('platform-owned books (seller_id null) are always buyable', () => {
@@ -100,8 +30,10 @@ describe('canBuyProduct (sellers cannot buy their own books)', () => {
 });
 
 describe('sellerEntryHref ("Become an Author" entry-point routing)', () => {
-  it('sends visitors to signup with the seller intent hint', () => {
-    expect(sellerEntryHref('anonymous')).toBe('/register?intent=seller');
+  it('sends visitors to the normal registration flow with seller intent preselected', () => {
+    // One registration page — ?sell=1 only preselects the temporary intent
+    // hint; it grants nothing (no /seller/register exists).
+    expect(sellerEntryHref('anonymous')).toBe('/register?sell=1');
   });
 
   it('sends authenticated users without a profile to onboarding', () => {
