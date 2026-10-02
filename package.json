@@ -10,6 +10,7 @@
     "generate:ebooks": "npx tsx scripts/generate-all-ebooks.ts",
     "generate:covers": "npx tsx scripts/generate-covers.ts",
     "seed:books": "npx tsx scripts/seed-books.ts",
+    "test:create-seller": "npx tsx scripts/create-test-seller.ts",
     "typecheck": "tsc --noEmit",
     "validate:ebooks": "npx tsx scripts/validate-ebooks.ts",
     "test": "vitest run"
