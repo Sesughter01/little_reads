@@ -141,7 +141,11 @@ describe('password reset flow wiring', () => {
     ];
     for (const file of authFiles) {
       const content = readSrc(file);
-      expect(content).toContain('safeRedirectPath');
+      // Every client must route through a VALIDATED-destination helper — either
+      // safe-redirect directly or the post-auth resolver built on it.
+      expect(
+        content.includes('safeRedirectPath') || content.includes('resolvePostAuthDestination')
+      ).toBe(true);
       // The old unsafe pattern must be gone: pushing the param untouched.
       expect(content).not.toMatch(/params\.get\(['"]redirect['"]\)\s*\|\|\s*['"]\/account['"]/);
     }

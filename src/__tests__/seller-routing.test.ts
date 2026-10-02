@@ -30,10 +30,16 @@ describe('canBuyProduct (sellers cannot buy their own books)', () => {
 });
 
 describe('sellerEntryHref ("Become an Author" entry-point routing)', () => {
-  it('sends visitors to the normal registration flow with seller intent preselected', () => {
-    // One registration page — ?sell=1 only preselects the temporary intent
-    // hint; it grants nothing (no /seller/register exists).
-    expect(sellerEntryHref('anonymous')).toBe('/register?sell=1');
+  it('sends anonymous visitors to the author application entry point', () => {
+    // The author journey is separate from customer auth: no ?sell=1 detour
+    // through /register, and no seller-specific auth route exists.
+    expect(sellerEntryHref('anonymous')).toBe('/seller/onboarding');
+  });
+
+  it('never routes anonymous visitors through the customer auth pages', () => {
+    expect(sellerEntryHref('anonymous')).not.toContain('/register');
+    expect(sellerEntryHref('anonymous')).not.toContain('/login');
+    expect(sellerEntryHref('anonymous')).not.toContain('sell=1');
   });
 
   it('sends authenticated users without a profile to onboarding', () => {

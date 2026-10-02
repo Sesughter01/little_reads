@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Store, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { useSellerEntry } from '@/components/seller/become-author';
 
 /**
  * /seller/onboarding — seller application form.
@@ -12,9 +13,17 @@ import { Store, ArrowRight, CheckCircle2 } from 'lucide-react';
  * Creates a PENDING application via POST /api/seller/onboarding. The browser
  * can never create an approved seller: status is forced server-side and the
  * DB trigger/RLS (Migration 007) backstops it.
+ *
+ * Anonymous visitors are told clearly that a (normal customer) account is
+ * required, and are offered the sign-in / registration paths — both of which
+ * return them here via ?redirect=/seller/onboarding to finish applying.
  */
 export default function SellerOnboardingPage() {
   const router = useRouter();
+  // `ready` distinguishes "confirmed anonymous" from "still loading", so a
+  // signed-in visitor never sees the sign-in notice flash.
+  const { state: sellerState, ready: sellerStateReady } = useSellerEntry();
+  const needsAuth = sellerStateReady && sellerState === 'anonymous';
   const [displayName, setDisplayName] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [bio, setBio] = useState('');
@@ -74,6 +83,34 @@ export default function SellerOnboardingPage() {
           before selling is enabled — approval usually follows a manual review.
         </p>
       </div>
+
+      {needsAuth && (
+        <div className="mb-6 rounded-2xl border border-brand-purple/20 bg-brand-purple/5 px-5 py-4">
+          <p className="text-sm font-semibold text-gray-900">
+            You need a LittleReads account to apply
+          </p>
+          <p className="mt-1 text-sm text-gray-600">
+            Author applications are tied to a normal customer account, and
+            selling is enabled only after an admin reviews and approves the
+            application. Sign in or create an account and you&apos;ll come
+            straight back here to finish applying.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href="/login?redirect=/seller/onboarding"
+              className="btn-primary no-underline"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/register?redirect=/seller/onboarding"
+              className="btn-secondary no-underline"
+            >
+              Create an account
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <form onSubmit={handleSubmit} className="space-y-4">

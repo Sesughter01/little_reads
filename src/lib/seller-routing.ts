@@ -37,15 +37,17 @@ export function canBuyProduct(
  * Where should the "Become an Author" entry-point CTA link for a given access
  * state? Pure routing — no auth, no fetch, unit-testable.
  *
- * Visitors are sent to the normal registration flow WITH the temporary seller
- * intent preselected (`?sell=1` — the same one normal register page, no
- * separate seller signup); authenticated users are routed by their
+ * Anonymous visitors go straight to the author APPLICATION entry point
+ * (/seller/onboarding), which explains that an account is required and sends
+ * them through the normal customer sign-in/register flow with a return path.
+ * There is no seller-specific auth route and no `?sell=1` detour through the
+ * customer registration page. Authenticated users are routed by their
  * authoritative seller profile state.
  */
 export function sellerEntryHref(state: SellerAccessState): string {
   switch (state) {
     case 'anonymous':
-      return '/register?sell=1';
+      return '/seller/onboarding';
     case 'no-profile':
       return '/seller/onboarding';
     case 'pending':

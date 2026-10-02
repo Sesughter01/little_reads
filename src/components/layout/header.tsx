@@ -206,10 +206,11 @@ export function Header() {
                 <Search className="h-5 w-5" />
               </button>
 
-              {/* Author entry point */}
+              {/* Author entry point — a deliberate secondary CTA, visible at
+                  normal desktop widths (lg+), separate from the utility icons. */}
               <Link
                 href={sellerHref}
-                className="hidden xl:inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-brand-purple hover:bg-brand-purple/5 rounded-xl transition-colors"
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-brand-purple/25 px-3 py-2 text-sm font-medium text-brand-purple transition-colors hover:bg-brand-purple/5"
               >
                 <Store className="h-4 w-4" />
                 {sellerLabel}
@@ -549,13 +550,15 @@ export function Header() {
                     >
                       Create Account
                     </Link>
+                    {/* Same author entry point as the navbar (never a
+                        hard-coded /register). */}
                     <Link
-                      href="/register"
+                      href={sellerHref}
                       onClick={() => setIsDrawerOpen(false)}
                       className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm font-medium text-brand-purple hover:bg-brand-purple/5 rounded-xl transition-colors"
                     >
                       <Store className="h-4 w-4" />
-                      Become an Author
+                      {sellerLabel}
                     </Link>
                   </div>
                 )}

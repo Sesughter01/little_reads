@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     let listQuery = supabase
       .from('seller_profiles')
       .select(
-        'user_id, display_name, business_name, bio, status, approved_at, approved_by, created_at, updated_at, profiles(email, first_name, last_name)'
+        'user_id, display_name, business_name, bio, status, approved_at, approved_by, created_at, updated_at, profiles!seller_profiles_user_id_fkey(email, first_name, last_name)'
       )
       .order('created_at', { ascending: false });
 

@@ -23,18 +23,33 @@ const CTA_LABELS: Record<SellerAccessState, string> = {
  * CTAs ("Become an Author" navbar link, drawer link, announcement bar).
  * One shared /api/seller/access request per page load.
  */
-export function useSellerEntry(): { state: SellerAccessState; href: string; label: string } {
+export function useSellerEntry(): {
+  state: SellerAccessState;
+  href: string;
+  label: string;
+  /**
+   * false until the server's reply arrives. Consumers that need to tell a
+   * CONFIRMED anonymous visitor from "still loading" (e.g. the onboarding
+   * sign-in notice) must wait for this — the initial state is a placeholder.
+   */
+  ready: boolean;
+} {
   const [state, setState] = useState<SellerAccessState>('anonymous');
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let active = true;
-    fetchSellerAccessState().then((s) => {
-      if (active) setState(s);
-    });
+    fetchSellerAccessState()
+      .then((s) => {
+        if (active) setState(s);
+      })
+      .finally(() => {
+        if (active) setReady(true);
+      });
     return () => {
       active = false;
     };
   }, []);
 
-  return { state, href: sellerEntryHref(state), label: CTA_LABELS[state] };
+  return { state, href: sellerEntryHref(state), label: CTA_LABELS[state], ready };
 }

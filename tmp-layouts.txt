@@ -1,8 +1,0 @@
-﻿C:\Users\User\Desktop\children-ebooks-ecommerce\src\app\layout.tsx
-C:\Users\User\Desktop\children-ebooks-ecommerce\src\app\(admin)\layout.tsx
-C:\Users\User\Desktop\children-ebooks-ecommerce\src\app\(admin)\admin\layout.tsx
-C:\Users\User\Desktop\children-ebooks-ecommerce\src\app\(auth)\layout.tsx
-C:\Users\User\Desktop\children-ebooks-ecommerce\src\app\(dashboard)\layout.tsx
-C:\Users\User\Desktop\children-ebooks-ecommerce\src\app\(dashboard)\account\layout.tsx
-C:\Users\User\Desktop\children-ebooks-ecommerce\src\app\(public)\layout.tsx
-C:\Users\User\Desktop\children-ebooks-ecommerce\src\app\(seller)\seller\layout.tsx
