@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { LittleReadsIcon } from '@/components/brand/littlereads-icon';
 import { NewsletterForm } from '@/components/newsletter-form';
+import { CurrencySelector } from '@/components/currency/currency-selector';
 
 export function Footer() {
   return (
@@ -57,6 +58,7 @@ export function Footer() {
           <p className="text-sm text-gray-500">
             © {new Date().getFullYear()} LittleReads. All rights reserved.
           </p>
+          <CurrencySelector />
           <p className="text-sm text-gray-500">
             Made with ♥ for little readers
           </p>

@@ -2,13 +2,16 @@
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { useClickGuard } from '@/lib/click-guard';
 
 export function NewsletterForm({ className = '' }: { className?: string }) {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const submitGuard = useClickGuard();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!submitGuard.claim()) return; // rapid repeated clicks
     setIsLoading(true);
 
     try {
@@ -30,6 +33,7 @@ export function NewsletterForm({ className = '' }: { className?: string }) {
       toast.error(error instanceof Error ? error.message : 'Failed to subscribe');
     } finally {
       setIsLoading(false);
+      submitGuard.release();
     }
   };
 

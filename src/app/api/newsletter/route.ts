@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
+import {
+  checkRateLimit,
+  clientIpFromRequest,
+  tooManyRequestsResponse,
+} from '@/lib/api-rate-limit';
 import { z } from 'zod';
 
 const newsletterSchema = z.object({
@@ -10,7 +15,14 @@ const newsletterSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Server-side throttle: anonymous DB writes were previously unbounded.
+    const limit = checkRateLimit(`newsletter:${clientIpFromRequest(request)}`, 5, 10 * 60_000);
+    if (!limit.allowed) {
+      return tooManyRequestsResponse(limit);
+    }
+
+    // Malformed JSON is a client error (400), not a server fault (500).
+    const body = await request.json().catch(() => null);
     const parsed = newsletterSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -64,7 +76,7 @@ export async function POST(request: NextRequest) {
     // Insert new subscriber. Protect against the UNIQUE constraint race
     // (two requests the same millisecond both pass the SELECT and try to
     // INSERT) — that should result in "already subscribed", not 500.
-    let { error } = await supabase.from('newsletter_subscribers').insert({
+    const { error } = await supabase.from('newsletter_subscribers').insert({
       email: normalizedEmail,
       status: 'active',
     });

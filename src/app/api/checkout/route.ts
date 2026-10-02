@@ -7,6 +7,10 @@ import {
   isPaystackConfigured,
 } from '@/lib/paystack';
 import { buildCheckoutCallbackUrl } from '@/lib/checkout-callback';
+import {
+  checkRateLimit,
+  tooManyRequestsResponse,
+} from '@/lib/api-rate-limit';
 import { z } from 'zod';
 
 /**
@@ -17,7 +21,14 @@ import { z } from 'zod';
  */
 const checkoutSchema = z.object({
   customer_name: z.string().min(2).max(200),
-  customer_email: z.string().email(),
+  /**
+   * OPTIONAL contact email for order receipts/correspondence. When omitted it
+   * defaults to the signed-in account email. It is deliberately NOT used for
+   * Paystack initialization (the verified account email always receives the
+   * payment receipt) and never influences order ownership, which is derived
+   * from the authenticated session server-side.
+   */
+  customer_email: z.string().email().max(254).optional(),
   phone: z.string().max(20).optional(),
   items: z
     .array(
@@ -27,7 +38,15 @@ const checkoutSchema = z.object({
     )
     .min(1)
     .max(20), // Max 20 items per order
-});
+}).refine(
+  // Duplicate product ids are deduped server-side, but rejecting them here
+  // gives a clear 400 instead of silently charging for a shorter cart.
+  (data) => {
+    const ids = data.items.map((item) => item.product_id);
+    return new Set(ids).size === ids.length;
+  },
+  { message: 'Duplicate items in cart', path: ['items'] }
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,18 +76,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Throttle checkout attempts per account: creates Paystack transactions
+    // and pending orders, both of which are costly to spam.
+    const limit = checkRateLimit(`checkout:${authUser.id}`, 10, 10 * 60_000);
+    if (!limit.allowed) {
+      return tooManyRequestsResponse(limit);
+    }
+
     const { customer_name, customer_email, phone, items } = parsed.data;
 
     // The order's owning user id is the authenticated user — never the client.
     const userId = authUser.id;
-
-    // The checkout email must belong to the signed-in account. This prevents
-    // a browser-supplied email from silently redefining purchase ownership.
     const accountEmail = (authUser.email || '').trim().toLowerCase();
-    const requestEmail = customer_email.trim().toLowerCase();
-    if (!accountEmail || requestEmail !== accountEmail) {
+
+    // Ownership-preserving contact email: the client MAY supply an alternative
+    // contact address for order correspondence, but ownership is and remains
+    // the authenticated session user. When no contact email is supplied the
+    // account email is used, exactly as before.
+    const contactEmail = customer_email
+      ? customer_email.trim().toLowerCase()
+      : accountEmail;
+
+    if (!accountEmail || !contactEmail) {
       return NextResponse.json(
-        { error: 'Use the email address on your account to check out.' },
+        { error: 'A valid email address is required to check out.' },
         { status: 400 }
       );
     }
@@ -89,7 +120,7 @@ export async function POST(request: NextRequest) {
     const productIds = items.map((item) => item.product_id);
     const { data: products, error: productsError } = await serviceClient
       .from('products')
-      .select('id, title, price, sale_price, published')
+      .select('id, title, price, sale_price, published, seller_id')
       .in('id', productIds);
 
     if (productsError || !products || products.length === 0) {
@@ -117,6 +148,24 @@ export async function POST(request: NextRequest) {
     );
 
     // Calculate total SERVER-SIDE (never trust client amounts).
+    // SELLERS CANNOT BUY THEIR OWN BOOKS (mandatory server-side enforcement).
+    // Ownership is read authoritatively from the DB above — never from the
+    // browser — so a manipulated client seller_id can never bypass this.
+    const ownBook = uniqueProducts.find(
+      (product) =>
+        (product as { seller_id?: string | null }).seller_id != null &&
+        (product as { seller_id?: string | null }).seller_id === userId
+    );
+    if (ownBook) {
+      return NextResponse.json(
+        {
+          error:
+            'You cannot purchase your own book. Open your Seller dashboard to manage it instead.',
+        },
+        { status: 403 }
+      );
+    }
+
     const subtotal = uniqueProducts.reduce((sum, product) => {
       return sum + (product.sale_price && product.sale_price > 0 ? product.sale_price : product.price);
     }, 0);
@@ -139,7 +188,7 @@ export async function POST(request: NextRequest) {
       .from('orders')
       .insert({
         user_id: userId,
-        customer_email: accountEmail,
+        customer_email: contactEmail,
         customer_name,
         phone: phone || null,
         subtotal,
@@ -159,10 +208,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
     }
 
-    // Create order items with server-calculated prices
+    // Create order items with server-calculated prices + seller attribution
+    // snapshot (seller_id is copied from the authoritative products row at
+    // transaction time so order history stays accurate even if ownership
+    // changes later; NULL = platform-owned book). Sales/payout accounting is
+    // not implemented yet — seller_amount/platform_fee remain unset.
     const orderItems = uniqueProducts.map((product) => ({
       order_id: order.id,
       product_id: product.id,
+      seller_id: (product as { seller_id?: string | null }).seller_id ?? null,
       title_snapshot: product.title,
       price_snapshot:
         product.sale_price && product.sale_price > 0 ? product.sale_price : product.price,
@@ -181,9 +235,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Paystack transaction. Production and Preview deployments both
-    // return to the canonical Little Reads domain; only local development may
-    // use the incoming loopback origin.
+    // Initialize Paystack transaction. Routing follows the configured key
+    // mode: LIVE keys (production) always return to the canonical Little Reads
+    // domain; TEST keys return to the origin serving this request (a Vercel
+    // Preview alias in preview, the loopback host in local development).
     const callback_url = buildCheckoutCallbackUrl(request.headers, paystack_reference);
 
     const paystackResponse = await initializePaystackTransaction({
@@ -197,6 +252,9 @@ export async function POST(request: NextRequest) {
         customer_email: accountEmail,
         user_id: userId,
       },
+      // contact_email is recorded for support/receipt correspondence only.
+      // Keep it out of payment metadata: Paystack receipt always goes to the
+      // verified account email above.
     });
 
     if (!paystackResponse.status) {

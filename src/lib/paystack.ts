@@ -68,6 +68,27 @@ function getSecretKey(): string {
   return process.env.PAYSTACK_SECRET_KEY || '';
 }
 
+/** Paystack API calls must never hang a checkout/webhook/sweep worker. */
+const PAYSTACK_TIMEOUT_MS = 10_000;
+
+/**
+ * fetch() with a hard timeout.
+ *
+ * A stalled Paystack connection inside the webhook path would hold the
+ * worker open, return 500 to Paystack, and trigger retry amplification.
+ * Network failures and timeouts surface as typed { status: false }
+ * responses at the call sites instead of throws.
+ */
+async function paystackFetch(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PAYSTACK_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function initializePaystackTransaction(params: {
   email: string;
   amount: number; // In kobo (smallest currency unit)
@@ -75,23 +96,34 @@ export async function initializePaystackTransaction(params: {
   metadata?: Record<string, unknown>;
   callback_url?: string;
 }): Promise<PaystackInitializeResponse> {
-  const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getSecretKey()}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      email: params.email,
-      amount: params.amount,
-      reference: params.reference,
-      metadata: params.metadata || {},
-      callback_url: params.callback_url,
-      currency: 'NGN',
-    }),
-  });
+  try {
+    const response = await paystackFetch(
+      `${PAYSTACK_BASE_URL}/transaction/initialize`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${getSecretKey()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: params.email,
+          amount: params.amount,
+          reference: params.reference,
+          metadata: params.metadata || {},
+          callback_url: params.callback_url,
+          currency: 'NGN',
+        }),
+      }
+    );
 
-  return parsePaystackJson<PaystackInitializeResponse>(response);
+    return parsePaystackJson<PaystackInitializeResponse>(response);
+  } catch {
+    // Timeout (abort) or network-level failure — typed failure, not a throw.
+    return {
+      status: false,
+      message: 'Paystack is unreachable (network error or timeout)',
+    } as PaystackInitializeResponse;
+  }
 }
 
 /**
@@ -128,23 +160,42 @@ async function parsePaystackJson<T extends { status: boolean; message: string }>
 export async function verifyPaystackTransaction(
   reference: string
 ): Promise<PaystackVerifyResponse> {
-  const response = await fetch(
-    `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${getSecretKey()}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  try {
+    // Reference is echoed into a URL path — encode it (defense in depth;
+    // the LR-<ts>-<rand> format is already path-safe).
+    const response = await paystackFetch(
+      `${PAYSTACK_BASE_URL}/transaction/verify/${encodeURIComponent(reference)}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${getSecretKey()}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
-  return parsePaystackJson<PaystackVerifyResponse>(response);
+    return parsePaystackJson<PaystackVerifyResponse>(response);
+  } catch {
+    // Timeout (abort) or network-level failure — typed failure so the
+    // webhook/caller keeps its normal retry semantics.
+    return {
+      status: false,
+      message: 'Paystack is unreachable (network error or timeout)',
+    } as PaystackVerifyResponse;
+  }
 }
 
+/**
+ * Generate a unique order reference.
+ *
+ * The random portion MUST be unpredictable: the reference doubles as the
+ * identifier a fulfillment is keyed on, and Math.random() is not a CSPRNG
+ * (predictable output could let an attacker pre-guess pending references).
+ * crypto.randomBytes gives a 48-bit random suffix on top of the timestamp.
+ */
 export function generateOrderReference(): string {
   const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
+  const random = crypto.randomBytes(4).toString('hex').slice(0, 6);
   return `LR-${timestamp}-${random}`.toUpperCase();
 }
 

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdminApi } from '@/lib/auth';
+import {
+  detectImageMimeFromBytes,
+  validatePdfMagic,
+  sanitizeSvg,
+} from '@/lib/upload-validation';
 
 const COVER_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 const COVER_MAX_BYTES = 10 * 1024 * 1024;
@@ -70,6 +75,33 @@ export async function POST(
       ext = 'pdf';
     }
 
+    // Content validation: the declared Content-Type is client-controlled.
+    // Verify magic bytes match the claim, and neutralize scripts inside SVG
+    // (SVG is served from the public covers bucket — stored XSS otherwise).
+    const buffer = await file.arrayBuffer();
+    if (type === 'cover') {
+      const declared = file.type;
+      if (declared === 'image/svg+xml') {
+        const svgOk = sanitizeSvg(buffer);
+        if (!svgOk.ok) {
+          return NextResponse.json(
+            { error: 'This SVG contains script content and was rejected. Export a static SVG or use PNG/JPEG/WebP.' },
+            { status: 400 }
+          );
+        }
+      } else if (detectImageMimeFromBytes(buffer) !== declared) {
+        return NextResponse.json(
+          { error: 'File content does not match its type. Upload a real image.' },
+          { status: 400 }
+        );
+      }
+    } else if (!validatePdfMagic(buffer)) {
+      return NextResponse.json(
+        { error: 'File content is not a valid PDF.' },
+        { status: 400 }
+      );
+    }
+
     const serviceClient = await createServiceClient();
 
     // Product must exist before any file is written (no orphan uploads).
@@ -88,7 +120,6 @@ export async function POST(
     // client-supplied filename, which prevents arbitrary storage paths.
     const filePath = type === 'cover' ? `${id}.${ext}` : `${id}.pdf`;
 
-    const buffer = await file.arrayBuffer();
     const { error: uploadError } = await serviceClient.storage
       .from(bucket)
       .upload(filePath, buffer, {

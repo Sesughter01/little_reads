@@ -3,6 +3,7 @@ import {
   createPublicClient,
   createServiceClient,
 } from '@/lib/supabase/server';
+import { sanitizeSearchTerm } from '@/lib/search-sanitize';
 import type {
   Product,
   ProductWithDetails,
@@ -82,9 +83,15 @@ export async function getProducts(params?: {
   }
 
   if (params?.search) {
-    query = query.or(
-      `title.ilike.%${params.search}%,short_description.ilike.%${params.search}%,author.ilike.%${params.search}%`
-    );
+    // Sanitize BEFORE interpolation: the .or() grammar treats commas and
+    // parentheses as filter metacharacters, so raw user input could inject
+    // additional conditions (PostgREST filter injection).
+    const search = sanitizeSearchTerm(params.search);
+    if (search) {
+      query = query.or(
+        `title.ilike.%${search}%,short_description.ilike.%${search}%,author.ilike.%${search}%`
+      );
+    }
   }
 
   switch (params?.sort) {
@@ -453,14 +460,20 @@ export async function getProductReviews(
 ): Promise<Review[]> {
   const supabase = await createPublicClient();
 
+  // Reviewer identity comes from the restricted public view (migration 005),
+  // which exposes ONLY names/avatar — never email, phone or role. Direct
+  // anonymous reads of profiles.email are revoked at the database level.
   const { data, error } = await supabase
     .from('reviews')
-    .select('*, user:profiles(id, first_name, last_name)')
+    .select('*, user:public_profiles_public(id, first_name, last_name, avatar_url)')
     .eq('product_id', productId)
     .eq('status', 'approved')
     .order('created_at', { ascending: false });
 
-  if (error) return [];
+  if (error) {
+    console.error('Error fetching product reviews:', { code: error.code });
+    return [];
+  }
 
   return (data || []) as Review[];
 }

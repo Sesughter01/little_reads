@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useClickGuard } from '@/lib/click-guard';
 import { User, Save, Mail, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -20,6 +21,7 @@ export function ProfileClient() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const saveGuard = useClickGuard();
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -62,6 +64,7 @@ export function ProfileClient() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
+    if (!saveGuard.claim()) return; // rapid repeated clicks
     setIsSaving(true);
 
     try {
@@ -84,6 +87,7 @@ export function ProfileClient() {
       toast.error(error instanceof Error ? error.message : 'Failed to update profile');
     } finally {
       setIsSaving(false);
+      saveGuard.release();
     }
   };
 

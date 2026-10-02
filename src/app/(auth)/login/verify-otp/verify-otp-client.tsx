@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { OTP_LOGIN_OPTIONS } from '@/lib/auth-options';
+import { safeRedirectPath } from '@/lib/safe-redirect';
+import { useClickGuard } from '@/lib/click-guard';
+import { isRateLimitError, useRateLimitCooldown } from '@/lib/rate-limit';
 import { BookOpen, Mail, KeyRound, ArrowRight, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function VerifyOtpClient() {
   const router = useRouter();
@@ -17,8 +18,10 @@ export default function VerifyOtpClient() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cooldown, setCooldown] = useState(0);
+  const { cooldown, startCooldown } = useRateLimitCooldown();
+  const submitGuard = useClickGuard();
 
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of the pending OTP email from sessionStorage (server-safe: runs only on the client after mount) */
   useEffect(() => {
     const pending = sessionStorage.getItem('littlereads_otp_email');
     if (pending) {
@@ -28,20 +31,7 @@ export default function VerifyOtpClient() {
       router.replace('/login');
     }
   }, [router]);
-
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setInterval(() => {
-      setCooldown((c) => {
-        if (c <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return c - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +42,7 @@ export default function VerifyOtpClient() {
       return;
     }
 
+    if (!submitGuard.claim()) return; // rapid repeated clicks
     setIsVerifying(true);
     setError(null);
 
@@ -79,18 +70,20 @@ export default function VerifyOtpClient() {
       sessionStorage.removeItem('littlereads_otp_email');
       toast.success('Welcome back!');
       const params = new URLSearchParams(window.location.search);
-      const redirectTo = params.get('redirect') || '/account';
+      const redirectTo = safeRedirectPath(params.get('redirect'), '/account');
       router.push(redirectTo);
       router.refresh();
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
       setIsVerifying(false);
+      submitGuard.release();
     }
   };
 
   const handleResend = async () => {
     if (!email || cooldown > 0) return;
+    if (!submitGuard.claim()) return; // rapid repeated clicks
     setIsResending(true);
     try {
       const supabase = createClient();
@@ -102,8 +95,9 @@ export default function VerifyOtpClient() {
       });
 
       if (error) {
-        if (error.message.toLowerCase().includes('rate') || error.status === 429) {
+        if (isRateLimitError(error)) {
           toast.error('Too many requests. Please wait a minute and try again.');
+          startCooldown();
         } else if (error.message.toLowerCase().includes('not found') || error.message.toLowerCase().includes('no user')) {
           toast.error('No account found for this email. Please sign up first.');
         } else {
@@ -113,11 +107,12 @@ export default function VerifyOtpClient() {
       }
 
       toast.success('New code sent to your email!');
-      setCooldown(RESEND_COOLDOWN_SECONDS);
+      startCooldown();
     } catch {
       toast.error('Something went wrong. Please try again.');
     } finally {
       setIsResending(false);
+      submitGuard.release();
     }
   };
 

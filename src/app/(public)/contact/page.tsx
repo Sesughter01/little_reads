@@ -3,13 +3,16 @@
 import { useState } from 'react';
 import { Mail, Send, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useClickGuard } from '@/lib/click-guard';
 
 export default function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const submitGuard = useClickGuard();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!submitGuard.claim()) return; // rapid repeated clicks
     setIsLoading(true);
 
     const form = e.target as HTMLFormElement;
@@ -35,6 +38,7 @@ export default function ContactPage() {
       toast.error('Failed to send message. Please try again.');
     } finally {
       setIsLoading(false);
+      submitGuard.release();
     }
   };
 

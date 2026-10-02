@@ -4,6 +4,9 @@ import { Star, BookOpen, CheckCircle2, ChevronRight } from 'lucide-react';
 import { formatPrice, getAgeRangeText } from '@/lib/utils';
 import { AddToCartButton } from '@/components/cart/add-to-cart-button';
 import { BuyNowButton } from '@/components/checkout/buy-now-button';
+import LocalizedPrice from '@/components/product/localized-price';
+import { getSessionUserId } from '@/lib/seller';
+import { getPriceDisplay } from '@/lib/price-display';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -57,6 +60,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   const reviews = await safeGetReviews(product.id);
   const relatedBooks = await safeGetRelated(product.id, product.category_id, product.age_min, product.age_max);
+  // Session user for the UI own-book guard (Layer 1). The server checkout
+  // API enforces the rule authoritatively; this only swaps the CTA.
+  const sessionUserId = await getSessionUserId();
+
+  // Display-only currency/rates for the current request (NGN fallback).
+  const priceDisplay = await getPriceDisplay();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -107,7 +116,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           </div>
 
           <div className="flex items-center gap-3 mb-8">
-            <span className="text-3xl font-bold text-gray-900">{formatPrice(product.sale_price || product.price)}</span>
+            <span className="text-3xl font-bold text-gray-900"><LocalizedPrice
+              amountNgn={product.sale_price || product.price}
+              rates={priceDisplay?.rates?.rates}
+              currency={priceDisplay?.currency}
+              className="text-4xl font-bold text-gray-900"
+            /></span>
             {product.sale_price && <span className="text-lg text-gray-400 line-through">{formatPrice(product.price)}</span>}
           </div>
 
@@ -133,8 +147,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <p className="text-gray-600 leading-relaxed mb-8">{product.short_description}</p>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-8">
-            <AddToCartButton product={product} />
-            <BuyNowButton product={product} />
+            <AddToCartButton product={product} sessionUserId={sessionUserId} />
+            <BuyNowButton product={product} sessionUserId={sessionUserId} />
           </div>
 
           <div className="prose prose-gray max-w-none mb-8">

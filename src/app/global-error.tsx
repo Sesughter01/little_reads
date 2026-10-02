@@ -1,5 +1,10 @@
 'use client';
 
+/**
+ * Global error boundary (outside the root layout — html/body are provided
+ * here). Kept minimal and inline-styled because global-error.tsx renders
+ * even when the app shell itself fails to load.
+ */
 export default function GlobalError({
   reset,
 }: {

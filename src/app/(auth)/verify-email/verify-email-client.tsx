@@ -4,35 +4,24 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useClickGuard } from '@/lib/click-guard';
+import { isRateLimitError, useRateLimitCooldown } from '@/lib/rate-limit';
 import { BookOpen, MailCheck, Mail, ArrowRight, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function VerifyEmailClient() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [isResending, setIsResending] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
+  const { cooldown, startCooldown } = useRateLimitCooldown();
+  const submitGuard = useClickGuard();
 
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of the pending email from sessionStorage (server-safe: runs only on the client after mount) */
   useEffect(() => {
     const pending = sessionStorage.getItem('littlereads_pending_email');
     if (pending) setEmail(pending);
   }, []);
-
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setInterval(() => {
-      setCooldown((c) => {
-        if (c <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return c - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleResend = async () => {
     if (!email) {
@@ -41,6 +30,7 @@ export default function VerifyEmailClient() {
     }
     if (cooldown > 0) return;
 
+    if (!submitGuard.claim()) return; // rapid repeated clicks
     setIsResending(true);
     try {
       const supabase = createClient();
@@ -50,8 +40,9 @@ export default function VerifyEmailClient() {
       });
 
       if (error) {
-        if (error.message.toLowerCase().includes('rate') || error.status === 429) {
+        if (isRateLimitError(error)) {
           toast.error('Too many requests. Please wait a minute and try again.');
+          startCooldown();
         } else {
           toast.error('We could not resend the email. Please try again shortly.');
         }
@@ -59,11 +50,12 @@ export default function VerifyEmailClient() {
       }
 
       toast.success('Verification email sent! Check your inbox.');
-      setCooldown(RESEND_COOLDOWN_SECONDS);
+      startCooldown();
     } catch {
       toast.error('Something went wrong. Please try again.');
     } finally {
       setIsResending(false);
+      submitGuard.release();
     }
   };
 

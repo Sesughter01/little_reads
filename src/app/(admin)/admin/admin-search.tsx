@@ -19,6 +19,34 @@ interface SearchResult {
   href: string;
 }
 
+interface SearchBookResult {
+  id: string;
+  title: string;
+  author: string;
+  published: boolean;
+  href: string;
+}
+interface SearchOrderResult {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  paystack_reference: string;
+  status: string;
+  total: number;
+  href: string;
+}
+interface SearchCustomerResult {
+  id: string;
+  name: string;
+  email: string;
+  href: string;
+}
+interface AdminSearchResponse {
+  books: SearchBookResult[];
+  orders: SearchOrderResult[];
+  customers: SearchCustomerResult[];
+}
+
 export function AdminSearch() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -47,18 +75,18 @@ export function AdminSearch() {
     try {
       const res = await fetch(`/api/admin/search?q=${encodeURIComponent(q)}`);
       if (!res.ok) throw new Error('Search failed');
-      const data = await res.json();
+      const data = (await res.json()) as AdminSearchResponse;
       const items: SearchResult[] = [
-        ...(data.books || []).map((b: any) => ({
+        ...(data.books || []).map((b): SearchResult => ({
           id: b.id, kind: 'book', title: b.title, author: b.author,
           href: b.href, status: b.published ? 'Published' : 'Draft',
         })),
-        ...(data.orders || []).map((o: any) => ({
+        ...(data.orders || []).map((o): SearchResult => ({
           id: o.id, kind: 'order', customer_name: o.customer_name,
           customer_email: o.customer_email, paystack_reference: o.paystack_reference,
           status: o.status, total: o.total, href: o.href,
         })),
-        ...(data.customers || []).map((c: any) => ({
+        ...(data.customers || []).map((c): SearchResult => ({
           id: c.id, kind: 'customer', name: c.name, email: c.email, href: c.href,
         })),
       ];

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { fulfillPaidOrder, maskReference } from '@/lib/fulfillment';
 import { evaluateCustomerReconcile } from '@/lib/reconcile-policy';
+import {
+  checkRateLimit,
+  tooManyRequestsResponse,
+} from '@/lib/api-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +37,13 @@ export async function POST(
         { error: 'Sign in to check your payment status.' },
         { status: 401 }
       );
+    }
+
+    // Throttle per account: each reconcile triggers a Paystack verify call
+    // plus potential fulfillment writes.
+    const limit = checkRateLimit(`reconcile:${authUser.id}`, 10, 10 * 60_000);
+    if (!limit.allowed) {
+      return tooManyRequestsResponse(limit);
     }
 
     const { id } = await params;

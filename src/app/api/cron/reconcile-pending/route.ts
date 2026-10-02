@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { reconcilePendingOrders } from '@/lib/reconcile-pending';
 
 export const dynamic = 'force-dynamic';
@@ -26,8 +27,15 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const auth = request.headers.get('authorization');
-  if (auth !== `Bearer ${secret}`) {
+  // Constant-time comparison: a plain string compare leaks the secret one
+  // byte at a time to a timing oracle. Length-guard first so timingSafeEqual
+  // cannot throw on a malformed header.
+  const auth = request.headers.get('authorization') || '';
+  const expected = `Bearer ${secret}`;
+  const a = Buffer.from(auth);
+  const b = Buffer.from(expected);
+  const mismatch = a.length !== b.length || !crypto.timingSafeEqual(a, b);
+  if (mismatch) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

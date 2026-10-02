@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import {
+  checkRateLimit,
+  clientIpFromRequest,
+  tooManyRequestsResponse,
+} from '@/lib/api-rate-limit';
 import { z } from 'zod';
 
 const contactSchema = z.object({
@@ -11,7 +16,14 @@ const contactSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Server-side throttle: anonymous DB writes were previously unbounded.
+    const limit = checkRateLimit(`contact:${clientIpFromRequest(request)}`, 5, 10 * 60_000);
+    if (!limit.allowed) {
+      return tooManyRequestsResponse(limit);
+    }
+
+    // Malformed JSON is a client error (400), not a server fault (500).
+    const body = await request.json().catch(() => null);
     const parsed = contactSchema.safeParse(body);
 
     if (!parsed.success) {

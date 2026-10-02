@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { resolveCheckoutAnonymousRedirect } from '@/lib/checkout-guard';
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -75,16 +76,23 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Checkout routes: require authentication
-  if (pathname.startsWith('/checkout')) {
+  // Checkout routes: follow the guest -> register journey, but keep payment
+  // RETURN/recovery pages (/checkout/success?ref=...) a LOGIN path so a
+  // Paystack reference is never lost to a registration flow.
+  if (pathname === '/checkout' || pathname.startsWith('/checkout/')) {
     if (!user) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      // Preserve the full intended destination (including ?ref=...) so the
-      // payment return page can reconcile the order after sign-in.
-      const redirectTo = `${pathname}${request.nextUrl.search}`;
-      url.searchParams.set('redirect', redirectTo);
-      return NextResponse.redirect(url);
+      const destination = resolveCheckoutAnonymousRedirect(
+        pathname,
+        request.nextUrl.search
+      );
+      if (destination) {
+        const url = request.nextUrl.clone();
+        url.pathname = destination.path;
+        // Preserve the full intended destination (including ?ref=...) so the
+        // payment return page can reconcile the order after sign-in.
+        url.searchParams.set('redirect', destination.redirectTo);
+        return NextResponse.redirect(url);
+      }
     }
   }
 

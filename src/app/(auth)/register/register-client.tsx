@@ -4,9 +4,20 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { resolvePostAuthDestination } from '@/lib/auth-intent';
+import { getEnvSiteOrigin } from '@/lib/site-url';
+import { safeRedirectPath } from '@/lib/safe-redirect';
+import { useClickGuard } from '@/lib/click-guard';
+import { isRateLimitError, useRateLimitCooldown } from '@/lib/rate-limit';
 import { BookOpen, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+/**
+ * The ONE customer registration form. No Buy/Sell selector, no seller intent,
+ * no /seller/register — registering here always creates a normal customer
+ * account. Becoming an author is a separate, admin-approved journey that starts
+ * at /seller/onboarding.
+ */
 export default function RegisterClient() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -14,14 +25,29 @@ export default function RegisterClient() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const submitGuard = useClickGuard();
+  const { cooldown, startCooldown } = useRateLimitCooldown();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!submitGuard.claim()) return; // rapid repeated clicks: only one flight
     setIsLoading(true);
 
     const supabase = createClient();
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    // Environment URL strategy: the redirect origin is ALWAYS the env-scoped
+    // NEXT_PUBLIC_SITE_URL, validated and normalized by the shared helper
+    // (never window.location, no hardcoded domain fallback).
+    const siteUrl = getEnvSiteOrigin();
+
+    if (!siteUrl) {
+      toast.error(
+        'App URL is not configured. Set a valid NEXT_PUBLIC_SITE_URL for this environment.'
+      );
+      setIsLoading(false);
+      submitGuard.release();
+      return;
+    }
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -38,8 +64,14 @@ export default function RegisterClient() {
     });
 
     if (error) {
-      toast.error(error.message);
+      if (isRateLimitError(error)) {
+        toast.error('Too many attempts. Please wait a minute and try again.');
+        startCooldown();
+      } else {
+        toast.error(error.message);
+      }
       setIsLoading(false);
+      submitGuard.release();
       return;
     }
 
@@ -47,17 +79,32 @@ export default function RegisterClient() {
     // The trigger reads first_name/last_name from raw_user_meta_data
     // which we pass via options.data above.
 
-    // If Supabase returns a session, email verification is disabled — sign in immediately
+    // If Supabase returns a session, email verification is disabled — sign in
+    // immediately and land on the validated destination (checkout recovery via
+    // the middleware ?redirect=/checkout, or /account).
     if (data.session) {
       toast.success('Account created! Welcome to LittleReads.');
       const params = new URLSearchParams(window.location.search);
-      const redirectTo = params.get('redirect') || '/account';
-      router.push(redirectTo);
+      router.push(
+        resolvePostAuthDestination({
+          redirect: params.get('redirect'),
+          fallback: '/account',
+        })
+      );
       router.refresh();
     } else {
       // Email verification is enabled — send the user to /verify-email so they
       // can confirm their address before signing in.
       sessionStorage.setItem('littlereads_pending_email', email);
+      // Carry the intended destination (e.g. /checkout from the middleware
+      // redirect, or /seller/onboarding when applying as an author) through the
+      // verification -> sign-in chain so the customer lands back there after
+      // verifying + logging in.
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = safeRedirectPath(params.get('redirect'), '');
+      if (redirectTo) {
+        sessionStorage.setItem('littlereads_pending_redirect', redirectTo);
+      }
       toast.success('Account created! Please check your email to verify your account.');
       router.push('/verify-email');
     }
@@ -78,7 +125,9 @@ export default function RegisterClient() {
           <p className="text-gray-500 mt-2">Join LittleReads today</p>
         </div>
 
-        {/* Form */}
+        {/* ONE customer registration flow — no /seller/register and no seller
+            authentication. Becoming an author stays a separate, admin-approved
+            journey that starts at /seller/onboarding once this account exists. */}
         <div className="card">
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -131,19 +180,19 @@ export default function RegisterClient() {
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input pl-10"
                   placeholder="••••••••"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">Minimum 6 characters</p>
+              <p className="text-xs text-gray-400 mt-1">Minimum 8 characters</p>
             </div>
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || cooldown > 0}
               className="btn-primary w-full"
             >
               {isLoading ? (
@@ -155,12 +204,21 @@ export default function RegisterClient() {
                 </>
               )}
             </button>
+
+            {cooldown > 0 && (
+              <p className="text-center text-xs text-gray-500">
+                Too many attempts — try again in {cooldown}s.
+              </p>
+            )}
           </form>
         </div>
 
         <p className="text-center mt-6 text-sm text-gray-500">
           Already have an account?{' '}
-          <Link href="/login" className="text-brand-purple font-semibold hover:underline">
+          <Link
+            href="/login"
+            className="text-brand-purple font-semibold hover:underline"
+          >
             Sign in
           </Link>
         </p>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ShieldCheck, KeyRound, Mail, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useClickGuard } from '@/lib/click-guard';
 
 type MfaStatus = {
   mfaEnabled: boolean;
@@ -19,6 +20,7 @@ export default function AdminMfaVerifyClient() {
   const [status, setStatus] = useState<MfaStatus | null>(null);
   const [code, setCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const verifyGuard = useClickGuard();
   const [error, setError] = useState<string | null>(null);
 
   const refreshStatus = () => {
@@ -54,6 +56,7 @@ export default function AdminMfaVerifyClient() {
       return;
     }
 
+    if (!verifyGuard.claim()) return; // rapid repeated clicks
     setIsVerifying(true);
     setError(null);
     try {
@@ -76,6 +79,7 @@ export default function AdminMfaVerifyClient() {
       setError('Verification failed. Please try again.');
     } finally {
       setIsVerifying(false);
+      verifyGuard.release();
     }
   };
 

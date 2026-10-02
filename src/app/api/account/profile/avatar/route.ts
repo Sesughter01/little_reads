@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireUserApi } from '@/lib/auth';
+import { detectImageMimeFromBytes } from '@/lib/upload-validation';
+import {
+  checkRateLimit,
+  tooManyRequestsResponse,
+} from '@/lib/api-rate-limit';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -38,6 +43,12 @@ export async function POST(request: NextRequest) {
     }
     const userId = auth.userId;
 
+    // Throttle storage writes per account (5 MB uploads are costly to spam).
+    const limit = checkRateLimit(`avatar:${userId}`, 10, 10 * 60_000);
+    if (!limit.allowed) {
+      return tooManyRequestsResponse(limit);
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 
@@ -59,6 +70,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Content check: the declared Content-Type is client-controlled. Verify
+    // the actual bytes are a real image before anything reaches storage.
+    const imageBuffer = await file.arrayBuffer();
+    if (detectImageMimeFromBytes(imageBuffer) !== file.type) {
+      return NextResponse.json(
+        { error: 'File content does not match its type. Upload a real image.' },
+        { status: 400 }
+      );
+    }
+
     const serviceClient = await createServiceClient();
 
     // Storage path scoped to this user — safe: uses the real session userId.
@@ -68,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     const { error: uploadError } = await serviceClient.storage
       .from(AVATAR_BUCKET)
-      .upload(filePath, file, {
+      .upload(filePath, imageBuffer, {
         contentType: file.type,
         upsert: true,
       });

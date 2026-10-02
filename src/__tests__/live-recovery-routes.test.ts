@@ -78,6 +78,17 @@ function formWithFile(file: File) {
   return form;
 }
 
+/**
+ * Minimal REAL image payloads (valid magic bytes) — the avatar route now
+ * verifies upload content, not just the declared Content-Type.
+ */
+const JPEG_BYTES = new Uint8Array([
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
+]);
+const PNG_BYTES = new Uint8Array([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+]);
+
 // ── Avatar API ────────────────────────────────────────────────
 
 describe('POST /api/account/profile/avatar (real route + real requireUserApi)', () => {
@@ -161,7 +172,7 @@ describe('POST /api/account/profile/avatar (real route + real requireUserApi)', 
     const res = await POST(
       new NextRequest('http://localhost/api/account/profile/avatar', {
         method: 'POST',
-        body: formWithFile(new File([new Uint8Array([1, 2, 3])], 'a.jpg', { type: 'image/jpeg' })),
+        body: formWithFile(new File([JPEG_BYTES], 'a.jpg', { type: 'image/jpeg' })),
       })
     );
 
@@ -205,7 +216,7 @@ describe('POST /api/account/profile/avatar (real route + real requireUserApi)', 
     const res = await POST(
       new NextRequest('http://localhost/api/account/profile/avatar', {
         method: 'POST',
-        body: formWithFile(new File([new Uint8Array([1])], 'a.png', { type: 'image/png' })),
+        body: formWithFile(new File([PNG_BYTES], 'a.png', { type: 'image/png' })),
       })
     );
     expect(res.status).toBe(500);
@@ -235,7 +246,7 @@ describe('POST /api/account/profile/avatar (real route + real requireUserApi)', 
     const res = await POST(
       new NextRequest('http://localhost/api/account/profile/avatar', {
         method: 'POST',
-        body: formWithFile(new File([new Uint8Array([1])], 'a.jpg', { type: 'image/jpeg' })),
+        body: formWithFile(new File([JPEG_BYTES], 'a.jpg', { type: 'image/jpeg' })),
       })
     );
     expect(res.status).toBe(500);
