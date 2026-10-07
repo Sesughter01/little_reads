@@ -16,10 +16,13 @@ import toast from 'react-hot-toast';
 
 type ForgotPasswordClientProps = {
   initialEmail?: string;
+  /** Admin recovery: shares Supabase flow, returns to /admin/login. */
+  isAdmin?: boolean;
 };
 
 export default function ForgotPasswordClient({
   initialEmail = '',
+  isAdmin = false,
 }: ForgotPasswordClientProps) {
   const [email, setEmail] = useState(
     initialEmail.trim().toLowerCase()
@@ -64,6 +67,8 @@ export default function ForgotPasswordClient({
       // Environment URL strategy: the recovery link origin is ALWAYS the
       // env-scoped NEXT_PUBLIC_SITE_URL, validated and normalized by the
       // shared helper (never window.location, no hardcoded domain).
+      // Admin recovery threads ?admin=1 through the callback so the reset
+      // page can return to /admin/login; anything else is ignored.
       const siteUrl = getEnvSiteOrigin();
 
       if (!siteUrl) {
@@ -72,10 +77,9 @@ export default function ForgotPasswordClient({
         );
       }
 
+      const resetNext = isAdmin ? '/reset-password?admin=1' : '/reset-password';
       const recoveryCallbackUrl =
-        `${siteUrl}/auth/callback?next=${encodeURIComponent(
-          '/reset-password'
-        )}`;
+        `${siteUrl}/auth/callback?next=${encodeURIComponent(resetNext)}`;
 
       const { error } =
         await supabase.auth.resetPasswordForEmail(
@@ -162,10 +166,10 @@ export default function ForgotPasswordClient({
             </p>
 
             <Link
-              href="/login"
+              href={isAdmin ? '/admin/login' : '/login'}
               className="btn-primary"
             >
-              Back to Login
+              {isAdmin ? 'Back to Admin Login' : 'Back to Login'}
             </Link>
           </div>
         ) : (
@@ -240,7 +244,7 @@ export default function ForgotPasswordClient({
         <p className="text-center mt-6 text-sm text-gray-500">
           Remember your password?{' '}
           <Link
-            href="/login"
+            href={isAdmin ? '/admin/login' : '/login'}
             className="text-brand-purple font-semibold hover:underline"
           >
             Sign in

@@ -5,6 +5,12 @@ export const metadata: Metadata = {
   title: 'Reset Password',
 };
 
+// Dynamic rendering: this page reads the recovery session client-side and
+// the ?admin=1 return hint from the URL. Like /forgot-password, it must
+// always render fresh (an expired/used link must show the invalid UI, never
+// a stale prerender), and static prerendering risks the Next.js 16
+// Turbopack prerender invariant.
+
 /**
  * Password recovery landing page.
  *
@@ -13,6 +19,8 @@ export const metadata: Metadata = {
  * middleware only guards /account, /admin and /checkout, so /reset-password
  * renders freely and its client handles session state.
  */
+export const dynamic = 'force-dynamic';
+
 export default function ResetPasswordPage() {
   return <ResetPasswordClient />;
 }

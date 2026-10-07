@@ -12,6 +12,7 @@ export default async function ForgotPasswordPage({
 }: {
   searchParams: Promise<{
     email?: string | string[];
+    admin?: string | string[];
   }>;
 }) {
   const params = await searchParams;
@@ -21,9 +22,15 @@ export default async function ForgotPasswordPage({
       ? params.email
       : '';
 
+  // Admin recovery shares the Supabase flow but returns to /admin/login.
+  // Any value other than exactly '1' is treated as a customer flow so an
+  // attacker cannot smuggle arbitrary destinations through this param.
+  const isAdmin = params.admin === '1';
+
   return (
     <ForgotPasswordClient
       initialEmail={initialEmail}
+      isAdmin={isAdmin}
     />
   );
 }

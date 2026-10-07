@@ -106,8 +106,10 @@ describe('password reset flow wiring', () => {
     expect(client).toContain('auth.updateUser({ password })');
     // Recovery sessions must never persist as a normal login:
     expect(client).toContain('auth.signOut()');
-    // Lands on login with the success signal:
-    expect(client).toContain("router.push('/login?reset=1')");
+    // Customer flow lands on login with the success signal; admin flow on
+    // admin login (see admin-recovery.test.ts for the full matrix):
+    expect(client).toContain("'/login?reset=1'");
+    expect(client).toContain("'/admin/login?reset=1'");
   });
 
   it('the auth callback still preserves the recovery session for /reset-password', () => {

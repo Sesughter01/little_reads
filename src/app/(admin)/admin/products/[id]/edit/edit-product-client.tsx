@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
+import { parseApiJson, readApiError } from '@/lib/api-response';
+import { PDF_MAX_BYTES } from '@/lib/pdf-upload';
 import {
   ArrowLeft,
   Save,
@@ -202,8 +204,8 @@ export function EditProductClient({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to update product');
+    if (!res.ok) throw new Error(await readApiError(res, 'Failed to update product'));
+    const data = await parseApiJson<{ success?: boolean }>(res);
     return data;
   };
 
@@ -289,9 +291,9 @@ export function EditProductClient({
       const res = await fetch(`/api/admin/products/${productId}`, {
         method: 'DELETE',
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete product');
-      if (data.archived) {
+      if (!res.ok) throw new Error(await readApiError(res, 'Failed to delete product'));
+      const data = await parseApiJson<{ archived?: boolean }>(res);
+      if (data?.archived) {
         toast.success('Book archived — it has purchase/order history, so it was hidden instead of deleted.');
       } else {
         toast.success('Book deleted');
@@ -317,8 +319,9 @@ export function EditProductClient({
         body: formData,
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      if (!response.ok) throw new Error(await readApiError(response, 'Failed to upload cover'));
+      const data = await parseApiJson<{ cover_url?: string }>(response);
+      if (!data?.cover_url) throw new Error('Failed to upload cover');
 
       setCoverPreview(data.cover_url);
       toast.success('Cover uploaded!');
@@ -334,21 +337,64 @@ export function EditProductClient({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Client-side gates (server re-validates at authorize + finalize).
+    if (file.type !== 'application/pdf') {
+      toast.error('Invalid file type. Only PDF allowed');
+      if (pdfInputRef.current) pdfInputRef.current.value = '';
+      return;
+    }
+    if (file.size === 0 || file.size > PDF_MAX_BYTES) {
+      toast.error('Invalid PDF size. Max 50MB.');
+      if (pdfInputRef.current) pdfInputRef.current.value = '';
+      return;
+    }
+
     setIsUploadingPdf(true);
     try {
-      const formData = new FormData();
-      formData.append('type', 'pdf');
-      formData.append('file', file);
-
-      const response = await fetch(`/api/admin/products/${productId}/assets`, {
+      // 1. Authorize: server verifies admin + product and returns a token
+      //    scoped to a server-generated STAGED object. The PDF bytes never
+      //    travel through the Next.js request body, and the live PDF stays
+      //    untouched until the staged file validates.
+      const authRes = await fetch(`/api/admin/products/${productId}/pdf-upload-url`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sizeBytes: file.size, contentType: file.type }),
       });
+      if (!authRes.ok) throw new Error(await readApiError(authRes, 'Could not authorize upload. Please try again.'));
+      const authData = await parseApiJson<{ bucket?: string; path?: string; uploadId?: string; token?: string }>(authRes);
+      if (!authData?.path || !authData?.token || !authData?.uploadId) {
+        throw new Error('Could not authorize upload. Please try again.');
+      }
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      // 2. Direct browser → Supabase Storage upload (private bucket).
+      const supabase = createClient();
+      const { error: directError } = await supabase.storage
+        .from(authData.bucket || 'ebook-files')
+        .uploadToSignedUrl(authData.path, authData.token, file, {
+          contentType: 'application/pdf',
+        });
+      if (directError) {
+        const message = directError.message.toLowerCase();
+        if (message.includes('too large') || message.includes('payload')) {
+          throw new Error('Upload too large. Try a smaller or compressed PDF (max 50MB).');
+        }
+        throw new Error(directError.message || 'Direct upload failed. Please try again.');
+      }
 
-      setPdfPath(data.pdf_path);
+      // 3. Finalize: server validates the STAGED object by metadata + first
+      //    bytes (constant memory), deletes it when invalid, and only then
+      //    promotes it to the canonical PDF. Only the opaque upload id
+      //    travels back — never a storage path.
+      const finRes = await fetch(`/api/admin/products/${productId}/pdf-finalize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uploadId: authData.uploadId }),
+      });
+      if (!finRes.ok) throw new Error(await readApiError(finRes, 'Failed to finalize upload. Please try again.'));
+      const finData = await parseApiJson<{ pdf_path?: string }>(finRes);
+      if (!finData?.pdf_path) throw new Error('Failed to finalize upload. Please try again.');
+
+      setPdfPath(finData.pdf_path);
       setPdfFileName(file.name);
       toast.success('PDF uploaded!');
     } catch (error) {
@@ -364,7 +410,7 @@ export function EditProductClient({
       const response = await fetch(`/api/admin/products/${productId}/assets?type=cover`, {
         method: 'DELETE',
       });
-      if (!response.ok) throw new Error('Failed to remove cover');
+      if (!response.ok) throw new Error(await readApiError(response, 'Failed to remove cover'));
       setCoverPreview(null);
       toast.success('Cover removed');
     } catch (error) {
@@ -377,7 +423,7 @@ export function EditProductClient({
       const response = await fetch(`/api/admin/products/${productId}/assets?type=pdf`, {
         method: 'DELETE',
       });
-      if (!response.ok) throw new Error('Failed to remove PDF');
+      if (!response.ok) throw new Error(await readApiError(response, 'Failed to remove PDF'));
       setPdfPath(null);
       setPdfFileName(null);
       toast.success('PDF removed');

@@ -66,9 +66,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => document.removeEventListener('keydown', handleEscape);
   }, [handleEscape]);
 
-  return (      <div className="min-h-screen bg-gray-50 flex">
-      {/* Top bar — fixed at top */}
-      <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 flex items-center justify-between fixed top-0 left-0 right-0 z-40">
+  // Single source of truth for the fixed chrome: the top bar is h-[53px],
+  // the desktop sidebar starts exactly below it, and the content row is
+  // padded by the same height so page content never slides underneath.
+  const TOP_BAR_HEIGHT = 'h-[53px]';
+  const TOP_OFFSET = 'pt-[53px]';
+
+  return (      <div className="min-h-screen bg-gray-50">
+      {/* Top bar — fixed at top, consistent height */}
+      <div className={`bg-white border-b border-gray-200 px-4 lg:px-8 flex items-center justify-between fixed top-0 left-0 right-0 z-40 ${TOP_BAR_HEIGHT}`}>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -91,7 +97,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </div>
 
-      <div className="flex">
+      <div className={`flex ${TOP_OFFSET}`}>
         {/* Sidebar - Desktop: fixed in viewport, scrolls internally */}
         <aside className="hidden lg:block w-64 bg-white border-r border-gray-200 flex-shrink-0 overflow-y-auto fixed top-[53px] left-0 h-[calc(100vh-53px)]">
           <nav className="p-4 space-y-1">
@@ -167,8 +173,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         )}
 
-        {/* Main Content — offset by sidebar on desktop */}
-        <main className="flex-1 p-4 lg:p-8 lg:ml-[16rem]">{children}</main>
+        {/* Main Content — offset by sidebar on desktop, shrinkable so wide
+            tables scroll inside their own wrapper instead of the page */}
+        <main className="flex-1 min-w-0 p-4 lg:p-8 lg:ml-64">{children}</main>
       </div>
     </div>
   );

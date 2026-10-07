@@ -3,23 +3,24 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdminApi } from '@/lib/auth';
 import {
   detectImageMimeFromBytes,
-  validatePdfMagic,
   sanitizeSvg,
 } from '@/lib/upload-validation';
 
 const COVER_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 const COVER_MAX_BYTES = 10 * 1024 * 1024;
-const PDF_MAX_BYTES = 50 * 1024 * 1024;
+// PDFs are NOT accepted here. Ebook PDFs must use the direct-upload flow
+// (POST .../pdf-upload-url → browser-direct staged upload → POST
+// .../pdf-finalize), because proxying multi-MB PDFs through this route hits
+// hosting request limits (413) before any app validation runs.
 
 /**
  * POST /api/admin/products/[id]/assets
  *
- * Upload (or replace) a book cover in the public `ebook-covers` bucket or the
- * ebook PDF in the PRIVATE `ebook-files` bucket.
+ * Upload (or replace) a book cover in the public `ebook-covers` bucket.
+ * PDF uploads via this route are GONE (410) — use the direct-upload flow.
  *
  * Storage paths are scoped to the real product id:
  *   ebook-covers/{productId}.{ext}
- *   ebook-files/{productId}.pdf
  *
  * Upload-then-update ordering: the new file is uploaded first and only after
  * that succeeds is the products row updated, so we never leave a database
@@ -46,58 +47,50 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid asset type' }, { status: 400 });
     }
 
+    // Legacy proxied PDF uploads are disabled: PDFs must travel browser →
+    // Supabase directly via the staged authorize/finalize flow, never through
+    // a Next.js request body. Rejected here — before any byte is read,
+    // uploaded, or written to the database. (formData parsing above is
+    // unavoidable to learn `type`, but no file bytes are consumed past it.)
+    if (type === 'pdf') {
+      return NextResponse.json(
+        { error: 'Direct PDF upload is required. Use the PDF upload authorization flow.' },
+        { status: 410 }
+      );
+    }
+
     if (!file || file.size === 0) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    let ext: string;
-    if (type === 'cover') {
-      if (!COVER_MIME_TYPES.includes(file.type)) {
-        return NextResponse.json(
-          { error: 'Invalid file type. Allowed: PNG, JPEG, WebP, SVG' },
-          { status: 400 }
-        );
-      }
-      if (file.size > COVER_MAX_BYTES) {
-        return NextResponse.json({ error: 'File too large. Max 10MB' }, { status: 400 });
-      }
-      ext = file.type === 'image/svg+xml' ? 'svg' : file.type.split('/')[1];
-    } else {
-      if (file.type !== 'application/pdf') {
-        return NextResponse.json(
-          { error: 'Invalid file type. Only PDF allowed' },
-          { status: 400 }
-        );
-      }
-      if (file.size > PDF_MAX_BYTES) {
-        return NextResponse.json({ error: 'File too large. Max 50MB' }, { status: 400 });
-      }
-      ext = 'pdf';
+    if (!COVER_MIME_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { error: 'Invalid file type. Allowed: PNG, JPEG, WebP, SVG' },
+        { status: 400 }
+      );
     }
+    if (file.size > COVER_MAX_BYTES) {
+      return NextResponse.json({ error: 'File too large. Max 10MB' }, { status: 400 });
+    }
+    const ext =
+      file.type === 'image/svg+xml' ? 'svg' : file.type.split('/')[1];
 
     // Content validation: the declared Content-Type is client-controlled.
     // Verify magic bytes match the claim, and neutralize scripts inside SVG
     // (SVG is served from the public covers bucket — stored XSS otherwise).
     const buffer = await file.arrayBuffer();
-    if (type === 'cover') {
-      const declared = file.type;
-      if (declared === 'image/svg+xml') {
-        const svgOk = sanitizeSvg(buffer);
-        if (!svgOk.ok) {
-          return NextResponse.json(
-            { error: 'This SVG contains script content and was rejected. Export a static SVG or use PNG/JPEG/WebP.' },
-            { status: 400 }
-          );
-        }
-      } else if (detectImageMimeFromBytes(buffer) !== declared) {
+    const declared = file.type;
+    if (declared === 'image/svg+xml') {
+      const svgOk = sanitizeSvg(buffer);
+      if (!svgOk.ok) {
         return NextResponse.json(
-          { error: 'File content does not match its type. Upload a real image.' },
+          { error: 'This SVG contains script content and was rejected. Export a static SVG or use PNG/JPEG/WebP.' },
           { status: 400 }
         );
       }
-    } else if (!validatePdfMagic(buffer)) {
+    } else if (detectImageMimeFromBytes(buffer) !== declared) {
       return NextResponse.json(
-        { error: 'File content is not a valid PDF.' },
+        { error: 'File content does not match its type. Upload a real image.' },
         { status: 400 }
       );
     }
@@ -115,10 +108,10 @@ export async function POST(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    const bucket = type === 'cover' ? 'ebook-covers' : 'ebook-files';
+    const bucket = 'ebook-covers';
     // Path is derived server-side from the real product id — never from the
     // client-supplied filename, which prevents arbitrary storage paths.
-    const filePath = type === 'cover' ? `${id}.${ext}` : `${id}.pdf`;
+    const filePath = `${id}.${ext}`;
 
     const { error: uploadError } = await serviceClient.storage
       .from(bucket)
@@ -138,14 +131,10 @@ export async function POST(
 
     // Update the product reference only after the upload succeeded.
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (type === 'cover') {
-      const { data: urlData } = serviceClient.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-      updateData.cover_url = urlData.publicUrl;
-    } else {
-      updateData.pdf_path = filePath;
-    }
+    const { data: urlData } = serviceClient.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+    updateData.cover_url = urlData.publicUrl;
 
     const { error: updateError } = await serviceClient
       .from('products')
@@ -161,11 +150,28 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
     }
 
+    // Cover replacement with a different extension orphans the old object
+    // (`{id}.png` vs `{id}.webp`), because upsert only writes the new key.
+    // Remove the superseded object ONLY after the new upload + DB update
+    // succeeded, so the only valid cover is never deleted first.
+    const previousFile = product.cover_url?.split('/').pop()?.split('?')[0];
+    if (previousFile && previousFile !== filePath) {
+      const { error: cleanupError } = await serviceClient.storage
+        .from(bucket)
+        .remove([previousFile]);
+      if (cleanupError) {
+        console.error('Stale cover cleanup failed:', {
+          op: 'admin.uploadAsset.coverCleanup',
+          message: cleanupError.message,
+        });
+      }
+    }
+
     return NextResponse.json({
       success: true,
       type,
       path: filePath,
-      ...(type === 'cover' ? { cover_url: updateData.cover_url } : { pdf_path: filePath }),
+      cover_url: updateData.cover_url,
     });
   } catch (error) {
     console.error('Asset upload error:', { op: 'admin.uploadAsset', error });

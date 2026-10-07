@@ -9,6 +9,7 @@ import { useClickGuard } from '@/lib/click-guard';
 
 type MfaStatus = {
   mfaEnabled: boolean;
+  required?: boolean;
   currentLevel: 'aal1' | 'aal2';
   needsEnrollment: boolean;
   needsVerification: boolean;
@@ -25,7 +26,7 @@ export default function AdminMfaVerifyClient() {
 
   const refreshStatus = () => {
     fetch('/api/admin/mfa/status')
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => (res.ok ? res.json().catch(() => null) : null))
       .then((data) => {
         if (!data) {
           router.replace('/admin/login');
@@ -66,9 +67,9 @@ export default function AdminMfaVerifyClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ factorId, code }),
       });
-      const data = await res.json();
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) {
-        setError(data.error || 'Verification failed');
+        setError(data?.error || 'Verification failed');
         setCode('');
         return;
       }

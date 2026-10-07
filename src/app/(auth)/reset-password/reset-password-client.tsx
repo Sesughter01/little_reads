@@ -40,6 +40,19 @@ export default function ResetPasswordClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitGuard = useClickGuard();
   const [formError, setFormError] = useState<string | null>(null);
+  // Admin recovery shares this page via ?admin=1 (threaded through the
+  // callback). Only the exact value '1' counts — anything else is the
+  // customer flow, so arbitrary destinations can never be smuggled in.
+  // The recovery session only authorizes a password change: role is never
+  // read or written here, and success signs out everywhere.
+  const [isAdminRecovery] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('admin') === '1'
+  );
+  const loginHref = isAdminRecovery ? '/admin/login' : '/login';
+  const loginResetHref = isAdminRecovery ? '/admin/login?reset=1' : '/login?reset=1';
+  const forgotHref = isAdminRecovery ? '/forgot-password?admin=1' : '/forgot-password';
 
   useEffect(() => {
     let active = true;
@@ -148,7 +161,7 @@ export default function ResetPasswordClient() {
               </p>
               <button
                 type="button"
-                onClick={() => router.push('/forgot-password')}
+                onClick={() => router.push(forgotHref)}
                 className="btn-primary w-full"
               >
                 <KeyRound className="h-4 w-4 mr-2" />
@@ -156,7 +169,7 @@ export default function ResetPasswordClient() {
               </button>
               <button
                 type="button"
-                onClick={() => router.push('/login')}
+                onClick={() => router.push(loginHref)}
                 className="block w-full text-center text-sm text-gray-500 hover:text-brand-purple"
               >
                 Back to Sign In
@@ -250,7 +263,7 @@ export default function ResetPasswordClient() {
               </p>
               <button
                 type="button"
-                onClick={() => router.push('/login?reset=1')}
+                onClick={() => router.push(loginResetHref)}
                 className="btn-primary w-full"
               >
                 Sign In with New Password

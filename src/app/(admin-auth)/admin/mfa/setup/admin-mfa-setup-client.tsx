@@ -9,6 +9,7 @@ import { useClickGuard } from '@/lib/click-guard';
 
 type MfaStatus = {
   mfaEnabled: boolean;
+  required?: boolean;
   currentLevel: 'aal1' | 'aal2';
   needsEnrollment: boolean;
   needsVerification: boolean;
@@ -28,7 +29,7 @@ export default function AdminMfaSetupClient() {
 
   useEffect(() => {
     fetch('/api/admin/mfa/status')
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => (res.ok ? res.json().catch(() => null) : null))
       .then((data) => {
         if (!data) {
           router.replace('/admin/login');
@@ -49,9 +50,13 @@ export default function AdminMfaSetupClient() {
     setIsEnrolling(true);
     try {
       const res = await fetch('/api/admin/mfa/enroll', { method: 'POST' });
-      const data = await res.json();
+      const data = (await res.json().catch(() => null)) as { error?: string; factorId?: string; totp?: { qrCode: string; secret: string } } | null;
       if (!res.ok) {
-        toast.error(data.error || 'Failed to enable MFA');
+        toast.error(data?.error || 'Failed to enable MFA');
+        return;
+      }
+      if (!data?.factorId || !data?.totp) {
+        toast.error('Failed to enable MFA');
         return;
       }
       setFactorId(data.factorId);
@@ -79,9 +84,9 @@ export default function AdminMfaSetupClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ factorId, code }),
       });
-      const data = await res.json();
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) {
-        toast.error(data.error || 'Verification failed');
+        toast.error(data?.error || 'Verification failed');
         return;
       }
       toast.success('Two-factor authentication enabled!');
@@ -147,12 +152,14 @@ export default function AdminMfaSetupClient() {
                 </>
               )}
             </button>
-            <Link
-              href="/admin"
-              className="block text-center text-sm text-gray-500 hover:text-brand-purple"
-            >
-              Skip for now
-            </Link>
+            {!status?.required && (
+              <Link
+                href="/admin"
+                className="block text-center text-sm text-gray-500 hover:text-brand-purple"
+              >
+                Skip for now
+              </Link>
+            )}
           </div>
         ) : (
           <form onSubmit={handleVerify} className="card space-y-4">

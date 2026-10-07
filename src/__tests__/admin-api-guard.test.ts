@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
  * Tests for requireAdminApi() — the API-safe admin guard.
@@ -12,6 +12,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 describe('Admin API authorization guard (requireAdminApi)', () => {
   beforeEach(() => {
     vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   /** Build a mock createClient implementation for a given auth scenario. */
@@ -104,7 +108,8 @@ describe('Admin API authorization guard (requireAdminApi)', () => {
     }
   });
 
-  it('admin with verified TOTP at aal1 → 403 (MFA verification pending)', async () => {
+  it('ADMIN_MFA_REQUIRED=true: admin with verified TOTP at aal1 → 403 (MFA verification pending)', async () => {
+    vi.stubEnv('ADMIN_MFA_REQUIRED', 'true');
     const requireAdminApi = await loadGuardWith(
       mockClient({
         user: { id: 'user-admin' },
@@ -120,7 +125,23 @@ describe('Admin API authorization guard (requireAdminApi)', () => {
     }
   });
 
-  it('admin with verified TOTP at aal2 → allowed', async () => {
+  it('ADMIN_MFA_REQUIRED unset: admin with verified TOTP at aal1 → allowed (MFA optional by default)', async () => {
+    vi.stubEnv('ADMIN_MFA_REQUIRED', '');
+    delete process.env.ADMIN_MFA_REQUIRED;
+    const requireAdminApi = await loadGuardWith(
+      mockClient({
+        user: { id: 'user-admin' },
+        profile: { id: 'user-admin', role: 'admin' },
+        assuranceLevel: 'aal1',
+        totpFactors: [{ factor_type: 'totp', status: 'verified' }],
+      })
+    );
+    const result = await requireAdminApi();
+    expect(result.ok).toBe(true);
+  });
+
+  it('ADMIN_MFA_REQUIRED=true: admin with verified TOTP at aal2 → allowed', async () => {
+    vi.stubEnv('ADMIN_MFA_REQUIRED', 'true');
     const requireAdminApi = await loadGuardWith(
       mockClient({
         user: { id: 'user-admin' },
@@ -131,8 +152,40 @@ describe('Admin API authorization guard (requireAdminApi)', () => {
     );
     const result = await requireAdminApi();
     expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.userId).toBe('user-admin');
+  });
+
+  it('ADMIN_MFA_REQUIRED=true: admin with NO factor → 403 MFA enrollment required', async () => {
+    vi.stubEnv('ADMIN_MFA_REQUIRED', 'true');
+    const requireAdminApi = await loadGuardWith(
+      mockClient({
+        user: { id: 'user-admin' },
+        profile: { id: 'user-admin', role: 'admin' },
+        assuranceLevel: 'aal1',
+        totpFactors: [],
+      })
+    );
+    const result = await requireAdminApi();
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(403);
+      expect(result.error).toMatch(/enrollment/i);
+    }
+  });
+
+  it('non-admin with aal2 + valid MFA → still 403 (MFA never grants admin)', async () => {
+    vi.stubEnv('ADMIN_MFA_REQUIRED', 'true');
+    const requireAdminApi = await loadGuardWith(
+      mockClient({
+        user: { id: 'user-customer' },
+        profile: { id: 'user-customer', role: 'customer' },
+        assuranceLevel: 'aal2',
+        totpFactors: [{ factor_type: 'totp', status: 'verified' }],
+      })
+    );
+    const result = await requireAdminApi();
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(403);
     }
   });
 

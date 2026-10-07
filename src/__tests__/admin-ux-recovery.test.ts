@@ -57,7 +57,7 @@ describe('Admin sidebar structural contract', () => {
   });
 
   it('main content is offset by the sidebar width on desktop', () => {
-    expect(layout).toContain('lg:ml-[16rem]');
+    expect(layout).toContain('lg:ml-64'); // w-64 sidebar == 16rem
   });
 
   it('topbar is fixed at the top', () => {

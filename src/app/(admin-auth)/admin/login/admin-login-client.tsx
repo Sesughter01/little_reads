@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 
 type MfaStatus = {
   mfaEnabled: boolean;
+  required?: boolean;
   currentLevel: 'aal1' | 'aal2';
   needsEnrollment: boolean;
   needsVerification: boolean;
@@ -72,12 +73,15 @@ export default function AdminLoginClient() {
       return;
     }
 
-    // Route through TOTP MFA when the project has it enabled
+    // Route through TOTP MFA ONLY when the explicit server policy requires
+    // it (ADMIN_MFA_REQUIRED=true, reported as `required`). Otherwise
+    // password login proceeds normally — availability of Supabase MFA never
+    // implies LittleReads requires it.
     try {
       const res = await fetch('/api/admin/mfa/status');
-      const mfa: MfaStatus | null = res.ok ? await res.json() : null;
+      const mfa: MfaStatus | null = res.ok ? await res.json().catch(() => null) : null;
 
-      if (mfa?.mfaEnabled) {
+      if (mfa?.mfaEnabled && mfa.required) {
         if (mfa.needsEnrollment) {
           router.push('/admin/mfa/setup');
           router.refresh();
@@ -174,16 +178,23 @@ export default function AdminLoginClient() {
           <div className="flex items-center gap-2 mt-5 pt-4 border-t border-gray-100">
             <ShieldCheck className="h-4 w-4 text-green-600" />
             <p className="text-xs text-gray-500">
-              Protected by role verification and two-factor authentication (TOTP)
+              Protected by admin role verification. Two-factor authentication is optional unless enabled by policy.
             </p>
           </div>
         </div>
 
-        <p className="text-center mt-6 text-sm text-gray-500">
-          <Link href="/login" className="text-brand-purple hover:underline">
-            Customer login
-          </Link>
-        </p>
+        <div className="text-center mt-6 space-y-2 text-sm text-gray-500">
+          <p>
+            <Link href="/forgot-password?admin=1" className="text-brand-purple font-semibold hover:underline">
+              Forgot password?
+            </Link>
+          </p>
+          <p>
+            <Link href="/login" className="text-brand-purple hover:underline">
+              Customer login
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

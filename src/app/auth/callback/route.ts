@@ -77,13 +77,16 @@ export async function GET(request: Request) {
   /**
    * We control the recovery redirect by sending:
    *
-   * /auth/callback?next=/reset-password
+   * /auth/callback?next=/reset-password  (customer)
+   * /auth/callback?next=/reset-password%3Fadmin%3D1  (admin)
    *
-   * Supabase may also provide type=recovery in some callback flows,
-   * so support that as an additional signal.
+   * getSafeNext() returns the validated full value including any query
+   * string, so compare on the path portion only. Supabase may also provide
+   * type=recovery in some callback flows, so support that as well.
    */
+  const requestedNextPath = requestedNext?.split(/[?#]/)[0] ?? null;
   const isPasswordRecovery =
-    requestedNext === '/reset-password' ||
+    requestedNextPath === '/reset-password' ||
     type === 'recovery';
 
   if (!code) {
@@ -182,9 +185,14 @@ export async function GET(request: Request) {
       return NextResponse.redirect(forgotPasswordUrl);
     }
 
-    return NextResponse.redirect(
-      new URL('/reset-password', siteOrigin)
-    );
+    // Preserve the validated recovery target (including ?admin=1 for the
+    // admin flow) so reset-password can return to the right login page.
+    // getSafeNext already rejected anything but safe internal paths.
+    const resetTarget =
+      requestedNext && requestedNextPath === '/reset-password'
+        ? requestedNext
+        : '/reset-password';
+    return NextResponse.redirect(new URL(resetTarget, siteOrigin));
   }
 
   /**
@@ -211,7 +219,7 @@ export async function GET(request: Request) {
   if (
     requestedNext &&
     requestedNext !== '/' &&
-    requestedNext !== '/reset-password'
+    requestedNextPath !== '/reset-password'
   ) {
     loginUrl.searchParams.set('next', requestedNext);
   }

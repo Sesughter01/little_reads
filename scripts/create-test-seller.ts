@@ -1,8 +1,8 @@
 /**
  * scripts/create-test-seller.ts
  *
- * Creates or resets a dedicated test seller account for local development and
- * QA of the LittleReads seller system.
+ * DEVELOPMENT-ONLY. Creates or resets a dedicated test seller account for
+ * local development and QA of the LittleReads seller system.
  *
  * The test account goes through the REAL seller state machine:
  *   auth.users  ->  profiles  ->  seller_profiles (pending)
@@ -11,10 +11,15 @@
  * Email is confirmed server-side via the Supabase Admin API so no real email
  * is sent and no verification step is needed during testing.
  *
+ * CREDENTIAL: the password comes ONLY from the TEST_SELLER_PASSWORD
+ * environment variable (never committed). The script aborts when it is
+ * absent. See .env.example for the variable NAME (placeholder only).
+ *
  * SAFETY GUARDS (all must pass or the script aborts):
  *   - NODE_ENV must not be "production".
  *   - LITTLEREADS_ENABLE_TEST_SELLER must be set to "true".
  *   - SUPABASE_SERVICE_ROLE_KEY must be set (server-side only, never browser-exposed).
+ *   - TEST_SELLER_PASSWORD must be set (min 12 chars).
  *
  * The script is IDEMPOTENT:
  *   - If the test user does not exist -> create it.
@@ -35,7 +40,9 @@ import { createClient } from '@supabase/supabase-js';
 // ---------------------------------------------------------------------------
 
 const TEST_EMAIL = 'seller-test@littlereads.local';
-const TEST_PASSWORD = 'lr-t3st-s3ll3r-2026!Q#X';
+// DEVELOPMENT-ONLY credential: never commit a value. Supply via env:
+//   TEST_SELLER_PASSWORD=<local-dev-only-password>
+const TEST_PASSWORD = process.env.TEST_SELLER_PASSWORD;
 const TEST_FIRST_NAME = 'Test';
 const TEST_LAST_NAME = 'Seller';
 const TEST_DISPLAY_NAME = 'LittleReads Test Seller';
@@ -75,6 +82,15 @@ if (process.env.LITTLEREADS_ENABLE_TEST_SELLER !== 'true') {
       '   To run this script:\n' +
       '     LITTLEREADS_ENABLE_TEST_SELLER=true npm run test:create-seller\n' +
       '   (or set the variable in your shell / .env.local for the session)'
+  );
+  process.exit(1);
+}
+
+if (!TEST_PASSWORD || TEST_PASSWORD.length < 12) {
+  console.error(
+    'ERROR: ABORTED: TEST_SELLER_PASSWORD is not set (min 12 chars).\n' +
+      '   Set a DEVELOPMENT-ONLY password for this session, e.g.:\n' +
+      '     TEST_SELLER_PASSWORD=<local-dev-only-password> LITTLEREADS_ENABLE_TEST_SELLER=true npm run test:create-seller'
   );
   process.exit(1);
 }
@@ -305,7 +321,7 @@ async function main() {
   console.log('============================================================');
   console.log(`   Name:         ${TEST_FIRST_NAME} ${TEST_LAST_NAME}`);
   console.log(`   Email:        ${TEST_EMAIL}`);
-  console.log(`   Password:     ${TEST_PASSWORD}`);
+  console.log(`   Password:     (from TEST_SELLER_PASSWORD env — not printed)`);
   console.log(`   User ID:      ${authUserId}`);
   console.log(`   Profile ID:   ${authUserId} (profiles.id = auth.users.id)`);
   if (sellerProfile) {
@@ -319,7 +335,7 @@ async function main() {
   console.log('============================================================');
   console.log('');
   console.log('How to use this account:');
-  console.log('   1. Log in at /login with the email and password above.');
+  console.log('   1. Log in at /login with the test email and your TEST_SELLER_PASSWORD value.');
   console.log('   2. Seller access state is determined by seller_profiles.status:');
   console.log('      - pending   -> /seller/pending');
   console.log('      - approved  -> /seller (dashboard)');
