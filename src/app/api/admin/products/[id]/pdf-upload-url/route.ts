@@ -16,10 +16,11 @@ import {
  * The file itself NEVER passes through the Next.js request body, so hosting
  * request limits (413) cannot reject large PDFs before validation.
  *
- * STAGED model: the token is scoped to a server-generated staged object
- * (`staging/{productId}/{uploadId}.pdf`), never to the canonical
- * `{productId}.pdf`. The live PDF stays untouched until finalize validates
- * the staged file and promotes it. A failed upload can therefore never
+ * STAGED model: the token is scoped to a server-generated unique staged
+ * object (`staging/{productId}/{uploadId}.pdf`), never to the live PDF.
+ * Finalize validates the staged file (metadata + first bytes) and then
+ * points products.pdf_path at it — the database pointer is the atomic
+ * replacement, so no byte copy ever runs and a failed upload can never
  * destroy the existing valid PDF.
  *
  * Request JSON: { sizeBytes: number, contentType?: string }

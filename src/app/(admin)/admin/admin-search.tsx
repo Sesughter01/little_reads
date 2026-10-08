@@ -174,6 +174,8 @@ export function AdminSearch() {
               <Search className="h-5 w-5 text-gray-400 shrink-0" />
               <input
                 ref={inputRef}
+                id="admin-search"
+                name="q"
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}

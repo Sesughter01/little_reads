@@ -6,6 +6,7 @@ import {
   PDF_MAX_BYTES,
   getPdfStoragePath,
   getStagedPdfPath,
+  isManagedPdfPath,
   isPdfMimeType,
   isValidPdfSize,
   isValidStagedUploadId,
@@ -62,6 +63,28 @@ describe('pdf-upload pure helpers', () => {
     const fake = new TextEncoder().encode('PNG! not a pdf').buffer as ArrayBuffer;
     expect(validatePdfMagic(real)).toBe(true);
     expect(validatePdfMagic(fake)).toBe(false);
+  });
+});
+
+describe('isManagedPdfPath (cleanup allowlist)', () => {
+  const id = '123e4567-e89b-12d3-a456-426614174000';
+  const staged = `staging/${id}/${'b'.repeat(32)}.pdf`;
+
+  it('accepts this product’s legacy canonical and staged paths', () => {
+    expect(isManagedPdfPath(id, `${id}.pdf`)).toBe(true);
+    expect(isManagedPdfPath(id, staged)).toBe(true);
+  });
+
+  it('rejects everything else — never auto-delete foreign objects', () => {
+    expect(isManagedPdfPath(id, null)).toBe(false);
+    expect(isManagedPdfPath(id, '')).toBe(false);
+    expect(isManagedPdfPath(id, 'generated/ebooks/seed.pdf')).toBe(false);
+    expect(isManagedPdfPath(id, 'other-product.pdf')).toBe(false);
+    expect(isManagedPdfPath(id, `staging/other-id/${'b'.repeat(32)}.pdf`)).toBe(false);
+    expect(isManagedPdfPath(id, `staging/${id}/short.pdf`)).toBe(false);
+    expect(isManagedPdfPath(id, `staging/${id}/${'B'.repeat(32)}.pdf`)).toBe(false);
+    expect(isManagedPdfPath(id, `${id}.pdf.bak`)).toBe(false);
+    expect(isManagedPdfPath(id, `../${id}.pdf`)).toBe(false);
   });
 });
 
@@ -134,14 +157,14 @@ describe('pdf direct-upload authorization route (staged)', () => {
   });
 });
 
-describe('pdf finalize route (metadata + range + promote)', () => {
-  it('never full-downloads: size from metadata, magic from a byte range', () => {
+describe('pdf finalize route (pointer swap, no byte copy)', () => {
+  it('never full-downloads, copies, or moves: size from metadata, magic from a byte range', () => {
     const route = readSrc('app/api/admin/products/[id]/pdf-finalize/route.ts');
     expect(route).toContain('requireAdminApi()');
-    // No full-object download anywhere in finalize.
+    // No full-object download, no byte transfer anywhere in finalize.
     expect(route).not.toContain('.download(');
-    expect(route).not.toContain('arrayBuffer()');
-    expect(route).not.toContain('.blob()');
+    expect(route).not.toContain('.copy(');
+    expect(route).not.toContain('.move(');
     // Size from listing metadata.
     expect(route).toContain('.list(');
     expect(route).toContain('metadata');
@@ -161,16 +184,30 @@ describe('pdf finalize route (metadata + range + promote)', () => {
     expect(route).not.toContain('signedUrl:');
   });
 
-  it('promotes staged → canonical only after validation; cleans up staged', () => {
+  it('pointer-swaps on success; invalid candidate deleted, old path kept', () => {
     const route = readSrc('app/api/admin/products/[id]/pdf-finalize/route.ts');
-    expect(route).toContain('.copy(stagedPath, canonicalPath)');
-    expect(route).toContain("pdf_path: canonicalPath");
-    // Both staged removals (invalid-content + post-promotion cleanup).
+    // Valid candidate → DB points at the staged object itself.
+    expect(route).toContain('pdf_path: stagedPath');
+    // Invalid candidate → staged removed (both failure branches); the
+    // previous object is removed only post-success behind the allowlist
+    // gate — never on any failure path, never for unrecognized paths.
     expect(route.match(/\.remove\(\[stagedPath\]\)/g)?.length).toBeGreaterThanOrEqual(2);
-    // Canonical is never deleted or pointed at invalid content.
-    expect(route).not.toContain('.remove([canonicalPath])');
+    expect(route).toContain('previousPath !== stagedPath && isManagedPdfPath(id, previousPath)');
+    // DB failure → old pdf_path stays active (update is the swap; staged
+    // remains for retry; the previous object is never deleted first).
+    expect(route).toContain('Upload validated but product update failed');
+    // Cleanup is best-effort, allowlisted, and never fails the upload.
+    expect(route).toContain('isManagedPdfPath(id, previousPath)');
     // Keeps the private bucket private (no public URL minted).
     expect(route).not.toContain('getPublicUrl');
+  });
+
+  it('legacy canonical books are replaceable; unknown paths never deleted', () => {
+    const route = readSrc('app/api/admin/products/[id]/pdf-finalize/route.ts');
+    // Legacy `{id}.pdf` needs no migration: the swap works from any
+    // previous pdf_path value, and cleanup only touches allowlisted paths.
+    expect(route).toContain('previousPath !== stagedPath');
+    expect(route).toContain('isManagedPdfPath');
   });
 });
 

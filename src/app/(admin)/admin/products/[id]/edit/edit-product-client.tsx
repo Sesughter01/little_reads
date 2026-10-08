@@ -382,9 +382,9 @@ export function EditProductClient({
       }
 
       // 3. Finalize: server validates the STAGED object by metadata + first
-      //    bytes (constant memory), deletes it when invalid, and only then
-      //    promotes it to the canonical PDF. Only the opaque upload id
-      //    travels back — never a storage path.
+      //    bytes (constant memory), deletes it when invalid, and on success
+      //    points pdf_path at it (pointer swap — no byte copy). Only the
+      //    opaque upload id travels back — never a storage path.
       const finRes = await fetch(`/api/admin/products/${productId}/pdf-finalize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

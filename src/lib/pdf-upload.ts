@@ -42,6 +42,26 @@ export function isValidStagedUploadId(uploadId: string | null | undefined): bool
   return typeof uploadId === 'string' && STAGED_UPLOAD_ID_PATTERN.test(uploadId);
 }
 
+/**
+ * True only for LittleReads-managed PDF objects of THIS product that are
+ * safe to delete after a successful pointer swap:
+ *   - the legacy canonical `{productId}.pdf` (exact match for this product;
+ *     pre-pointer-swap books still reference this layout, which is never
+ *     created for new uploads and never migrated), or
+ *   - a staged `staging/{productId}/{32hex}.pdf` of this product.
+ *
+ * Anything else (seed paths, foreign keys, other products' objects) returns
+ * false and must NEVER be auto-deleted.
+ */
+export function isManagedPdfPath(productId: string, pdfPath: string | null | undefined): boolean {
+  if (typeof pdfPath !== 'string' || pdfPath.length === 0) return false;
+  if (pdfPath === getPdfStoragePath(productId)) return true;
+  const stagedPrefix = `${PDF_STAGING_PREFIX}/${productId}/`;
+  if (!pdfPath.startsWith(stagedPrefix)) return false;
+  const rest = pdfPath.slice(stagedPrefix.length);
+  return rest.length === 36 && rest.endsWith('.pdf') && STAGED_UPLOAD_ID_PATTERN.test(rest.slice(0, 32));
+}
+
 /** Client/authorization-side size gate: 1 byte .. 50 MB. */
 export function isValidPdfSize(sizeBytes: number): boolean {
   return Number.isFinite(sizeBytes) && sizeBytes > 0 && sizeBytes <= PDF_MAX_BYTES;
